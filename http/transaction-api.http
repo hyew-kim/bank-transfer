@@ -1,0 +1,9 @@
+### 계좌별 거래 생성 API - 입금/출금/송금
+### POST /api/accounts/{accountId}/transactions
+#{
+#  "type": "DEPOSIT" | "WITHDRAWAL" | "TRANSFER",     // 거래 구분
+#  "amount": 10000,
+#  "toAccountId": "456"
+#}
+### 계좌별 최신순 거래내역 조회 API
+### GET /api/accounts/{accountId}/transactions
