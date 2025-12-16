@@ -3,6 +3,7 @@ package com.example.banktransfer.account.domain;
 import com.example.banktransfer.account.AccountStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
@@ -20,12 +21,13 @@ public class Account {
     private String accountNumber;
 
     @Column(length = 3)
-    private String bankCode = "777";
+    private String bankCode = "777"; //TODO: 유저가 여러 은행 계좌를 가지도록 확장
 
     @Column(name = "holder_name", length = 50)
     private String holderName;
 
     @Enumerated(EnumType.STRING)
+    @Getter
     private AccountStatus status; // ACTIVE, DORMANT, CLOSED
 
     @Column(precision = 15, scale = 2)
@@ -35,9 +37,11 @@ public class Account {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Account(String holderName) {
-        this.accountNumber = String.join("", this.bankCode, "00",String.format("%09d", generateSequence()));
+        String generalFinance = "00";
+
         this.holderName = holderName;
-        this.status = AccountStatus.ACTIVE;
+        accountNumber = String.join("", bankCode, generalFinance, String.format("%09d", generateSequence()));
+        status = AccountStatus.ACTIVE;
     }
 
     private long generateSequence() {
@@ -46,10 +50,10 @@ public class Account {
     }
 
     public void changeAccountStatus(AccountStatus tobeStatus) {
-        if (!this.status.getIsChangeable()) {
+        if (!status.getIsChangeable()) {
             throw new IllegalStateException("변경이 불가한 계좌입니다.");
         }
 
-        this.status = tobeStatus;
+        status = tobeStatus;
     }
 }
