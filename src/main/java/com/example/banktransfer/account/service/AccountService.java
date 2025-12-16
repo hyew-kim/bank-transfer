@@ -1,7 +1,9 @@
 package com.example.banktransfer.account.service;
 
 import com.example.banktransfer.account.AccountStatus;
-import com.example.banktransfer.account.domain.Account;
+import com.example.banktransfer.account.domain.dto.AccountResponse;
+import com.example.banktransfer.account.domain.entity.Account;
+import com.example.banktransfer.account.domain.dto.CreateAccountRequest;
 import com.example.banktransfer.account.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,14 +15,29 @@ public class AccountService {
     private final AccountRepository accountRepository;
 
     @Transactional(readOnly = true)
-    public Account searchAccount(String holderName) {
-        return accountRepository.findByHolderName(holderName);
+    public AccountResponse searchAccount(String holderName) {
+        Account account = accountRepository
+                .findByHolderName(holderName)
+                .orElseThrow(() -> new RuntimeException(holderName + "소유의 계좌를 찾을 수 없습니다."));
+
+        return AccountResponse.from(account);
+    }
+
+    @Transactional(readOnly = true)
+    public AccountResponse searchAccount(Long accountId) {
+        Account account =  accountRepository
+                .findById(accountId)
+                .orElseThrow(() -> new RuntimeException("ID " + accountId + "를 찾을 수 없습니다."));
+
+        return AccountResponse.from(account);
     }
 
     @Transactional
-    public void createAccount(String holderName) {
-        if (searchAccount(holderName) != null) {
-            throw new RuntimeException("Account already exists:: 가입자명 - " + holderName);
+    public void createAccount(CreateAccountRequest request) {
+        String holderName = request.holderName();
+
+        if (accountRepository.existsByHolderName(holderName)) {
+            throw new RuntimeException("이미 계좌가 존재합니다.:: 가입자명 - " + holderName);
         }
 
         Account account = new Account(holderName);
@@ -29,13 +46,10 @@ public class AccountService {
     }
 
     @Transactional
-    public void closeAccount(String accountId) {
-        // TODO: 계좌 삭제할때.. 계좌번호 + 계좌 소유주명을 받는게 나을지 검토
-        Account userAccount = searchAccount(accountId);
-
-        if (userAccount == null) {
-            throw new IllegalArgumentException("Account does not exists:: accountId - " + accountId);
-        }
+    public void closeAccount(Long accountId) {
+        Account userAccount = accountRepository
+                .findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account does not exists:: accountId - " + accountId));
 
         userAccount.changeAccountStatus(AccountStatus.CLOSED);
     }

@@ -1,4 +1,4 @@
-package com.example.banktransfer.account.domain;
+package com.example.banktransfer.account.domain.entity;
 
 import com.example.banktransfer.account.AccountStatus;
 import jakarta.persistence.*;
@@ -15,15 +15,18 @@ import java.time.LocalDateTime;
 public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Getter
     private Long id;
 
     @Column(name = "account_number", unique = true, nullable = false, length = 14)
+    @Getter
     private String accountNumber;
 
     @Column(length = 3)
     private String bankCode = "777"; //TODO: 유저가 여러 은행 계좌를 가지도록 확장
 
     @Column(name = "holder_name", length = 50)
+    @Getter
     private String holderName;
 
     @Enumerated(EnumType.STRING)
@@ -31,7 +34,7 @@ public class Account {
     private AccountStatus status; // ACTIVE, DORMANT, CLOSED
 
     @Column(precision = 15, scale = 2)
-    private BigDecimal balance =  BigDecimal.ZERO;
+    private BigDecimal balance = BigDecimal.ZERO;
 
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

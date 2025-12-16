@@ -1,8 +1,31 @@
-### 계좌 등록 API
-### POST /api/accounts
+### 계좌 개설 API
+POST http://localhost:8080/api/accounts
+Content-Type: application/json
 
-### 계좌 삭제 API
-### DELETE /api/accounts/{accountId}
+{
+  "holderName": "tom"
+}
+
+> {%
+client.test("Status", function() {
+  client.assert(response.status, 200, "상태코드 200 확인");
+});
+%}
 
 ### 계좌 조회 API
-### GET /api/accounts/{accountId}
+GET http://localhost:8080/api/accounts/1
+
+> {%
+    client.test("Status", function() {
+        client.assert(response.status, 200, "상태코드 200 확인");
+    });
+%}
+
+### 계좌 해지 API
+DELETE http://localhost:8080/api/accounts/1
+
+> {%
+    client.test("Status", function() {
+        client.assert(response.status, 200, "상태코드 200 확인");
+    });
+%}
