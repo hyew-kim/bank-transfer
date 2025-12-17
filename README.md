@@ -1,7 +1,7 @@
 # 송금 서비스 구현
 ## 프로젝트 실행
 ### Dependency
-- `Docker Compose 1.29+`
+- `Docker Compose 1.6.0+`
 - `JDK 17`
 
 ## 프로젝트 개요
