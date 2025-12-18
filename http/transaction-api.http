@@ -1,9 +1,31 @@
-### 계좌별 거래 생성 API - 입금/출금/송금
-### POST /api/accounts/{accountId}/transactions
-#{
-#  "type": "DEPOSIT" | "WITHDRAWAL" | "TRANSFER",     // 거래 구분
-#  "amount": 10000,
-#  "toAccountId": "456"
-#}
+### 입금 API
+POST http://localhost:8080/api/accounts/2/deposit
+Content-Type: application/json
+
+{
+ "amount": 10000,
+ "description": "급여"
+}
+
+### 출금 API
+POST http://localhost:8080/api/accounts/1/withdraw
+Content-Type: application/json
+
+{
+  "amount": 5000,
+  "description": "생활비"
+}
+
+### 이체 API
+POST http://localhost:8080/api/accounts/1/transfer
+Content-Type: application/json
+
+{
+  "toAccountId": 3,
+  "amount": 1000,
+  "description": "정산금"
+}
+
+
 ### 계좌별 최신순 거래내역 조회 API
-### GET /api/accounts/{accountId}/transactions
+### GET http://localhost:8080/api/accounts/{accountId}/transactions

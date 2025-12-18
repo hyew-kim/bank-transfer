@@ -76,4 +76,8 @@ public class Account {
 
         status = tobeStatus;
     }
+
+    public void changeBalance(BigDecimal toBeBalance) {
+        this.balance = toBeBalance;
+    }
 }
