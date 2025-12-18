@@ -1,13 +1,8 @@
-package com.example.banktransfer;
+package com.example.banktransfer.global.config;
 
 import com.example.banktransfer.global.annotation.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
-import org.testcontainers.utility.TestcontainersConfiguration;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -15,7 +10,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
 @IntegrationTest
-class ConnectionTest {
+class TestcontainerConnectionTest {
 
     @Autowired
     private DataSource dataSource;

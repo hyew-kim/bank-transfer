@@ -40,7 +40,9 @@ public class AccountService {
             throw new RuntimeException("이미 계좌가 존재합니다.:: 가입자명 - " + holderName);
         }
 
-        Account account = new Account(holderName);
+        Account account = Account.builder()
+                .holderName(holderName)
+                .build();
 
         accountRepository.save(account);
     }

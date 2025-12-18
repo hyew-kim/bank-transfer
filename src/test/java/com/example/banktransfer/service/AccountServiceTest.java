@@ -1,12 +1,12 @@
-package com.example.banktransfer.account.service;
+package com.example.banktransfer.service;
 
 import com.example.banktransfer.account.domain.dto.AccountResponse;
 import com.example.banktransfer.account.domain.dto.CreateAccountRequest;
+import com.example.banktransfer.account.service.AccountService;
 import com.example.banktransfer.global.annotation.IntegrationTest;
 import com.example.banktransfer.account.AccountStatus;
 import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;

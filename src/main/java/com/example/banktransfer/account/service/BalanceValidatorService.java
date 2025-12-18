@@ -1,4 +1,4 @@
-package com.example.banktransfer.transaction.service;
+package com.example.banktransfer.account.service;
 
 import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
