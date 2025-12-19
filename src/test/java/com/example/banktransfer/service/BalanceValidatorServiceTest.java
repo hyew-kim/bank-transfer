@@ -4,6 +4,7 @@ import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.account.service.BalanceValidatorService;
 import com.example.banktransfer.global.annotation.IntegrationTest;
+import com.example.banktransfer.global.config.BaseIntegrationTest;
 import com.example.banktransfer.global.fixture.AccountFixture;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @IntegrationTest
-class BalanceValidatorServiceTest {
+class BalanceValidatorServiceTest extends BaseIntegrationTest {
     @Autowired
     private BalanceValidatorService balanceValidatorService;
     @Autowired
