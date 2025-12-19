@@ -6,6 +6,7 @@ import com.example.banktransfer.account.service.BalanceValidatorService;
 import com.example.banktransfer.transaction.TransactionStatus;
 import com.example.banktransfer.transaction.TransactionType;
 import com.example.banktransfer.transaction.domain.dto.MoneyRequest;
+import com.example.banktransfer.transaction.domain.dto.TransactionResponse;
 import com.example.banktransfer.transaction.domain.dto.TransferRequest;
 import com.example.banktransfer.transaction.domain.entity.Transaction;
 import com.example.banktransfer.transaction.repository.TransactionRepository;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -105,6 +107,7 @@ public class TransactionService {
 
             throw new RuntimeException(tx.getTransactionId(), ex);
         }
+
         return tx;
     }
 
@@ -150,5 +153,16 @@ public class TransactionService {
         }
 
         return tx;
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponse> getAccountTransactions(Long accountId) {
+        List<Transaction> transactions = transactionRepository
+                .findByAccountIdAndStatusOrderByIdDesc(accountId, TransactionStatus.SUCCESS)
+                .orElse(List.of());
+
+        return transactions.stream()
+                .map(TransactionResponse::from)
+                .toList();
     }
 }

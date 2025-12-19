@@ -85,8 +85,10 @@ public class Transaction {
 
     @PrePersist
     protected void generateTid() {
-        this.transactionId = "TRX" + LocalDateTime.now()
+        String timestamp = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        int suffix = java.util.concurrent.ThreadLocalRandom.current().nextInt(1000);
+        this.transactionId = String.format("TRX%s%03d", timestamp, suffix);
     }
 
     public void setStatus(TransactionStatus status) {

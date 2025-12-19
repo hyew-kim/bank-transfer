@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/accounts/{accountId}")
 @RequiredArgsConstructor
@@ -39,15 +41,16 @@ public class TransactionController {
 
     @PostMapping("/transfer")
     public ResponseEntity<TransactionResponse> transfer(
-        @PathVariable Long accountId,
-        @Valid @RequestBody TransferRequest request) {
+            @PathVariable Long accountId,
+            @Valid @RequestBody TransferRequest request) {
 
         Transaction tx = transactionService.transfer(accountId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(TransactionResponse.from(tx));
     }
-  /*  @GetMapping("/transactions")
-    public ResponseEntity<List<Transaction>> getTransactions(@PathVariable Long accountId) {
 
-    }*/
+    @GetMapping("/transactions")
+    public ResponseEntity<List<TransactionResponse>> getTransactions(@PathVariable Long accountId) {
+        return ResponseEntity.ok(transactionService.getAccountTransactions(accountId));
+    }
 }

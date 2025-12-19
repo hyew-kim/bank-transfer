@@ -28,4 +28,4 @@ Content-Type: application/json
 
 
 ### 계좌별 최신순 거래내역 조회 API
-### GET http://localhost:8080/api/accounts/{accountId}/transactions
+GET http://localhost:8080/api/accounts/1/transactions

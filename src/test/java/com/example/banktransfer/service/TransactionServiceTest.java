@@ -4,8 +4,10 @@ import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.global.annotation.IntegrationTest;
 import com.example.banktransfer.global.fixture.AccountFixture;
+import com.example.banktransfer.global.fixture.TransactionFixture;
 import com.example.banktransfer.transaction.TransactionType;
 import com.example.banktransfer.transaction.domain.dto.MoneyRequest;
+import com.example.banktransfer.transaction.domain.dto.TransactionResponse;
 import com.example.banktransfer.transaction.domain.dto.TransferRequest;
 import com.example.banktransfer.transaction.repository.TransactionRepository;
 import com.example.banktransfer.transaction.service.TransactionService;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -123,5 +126,25 @@ public class TransactionServiceTest {
         assertThat(updatedToAccount.getBalance())
                 .as("이체 로직 실패 - 이체 대상 잔액 정합성")
                 .isEqualByComparingTo(INIT_BALANCE.add(transferAmount));
+    }
+
+    @Test
+    public void 계좌별_거래조회_성공() {
+        Account testAccount = accountRepository
+                .findByHolderName(ACCOUNT_HOLDER)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        transactionService.deposit(testAccount.getId(), new MoneyRequest(BigDecimal.valueOf(10000), "test 입금"));
+
+        transactionService.withdraw(testAccount.getId(), new MoneyRequest(BigDecimal.valueOf(3000), "test 출금"));
+
+        List<TransactionResponse> transactions = transactionService.getAccountTransactions(testAccount.getId());
+
+        assertThat(transactions)
+                .hasSize(2);
+        assertThat(transactions.get(0).type())
+                .isEqualTo(TransactionType.WITHDRAW);
+        assertThat(transactions.get(1).type())
+                .isEqualTo(TransactionType.DEPOSIT);
     }
 }
