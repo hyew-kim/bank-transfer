@@ -5,6 +5,8 @@ import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.account.service.BalanceValidatorService;
 import com.example.banktransfer.transaction.TransactionStatus;
 import com.example.banktransfer.transaction.TransactionType;
+import com.example.banktransfer.transaction.domain.dto.MoneyRequest;
+import com.example.banktransfer.transaction.domain.dto.TransferRequest;
 import com.example.banktransfer.transaction.domain.entity.Transaction;
 import com.example.banktransfer.transaction.repository.TransactionRepository;
 import jakarta.annotation.Nullable;
@@ -43,16 +45,22 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction deposit(Long accountId, BigDecimal amount, String description) {
+    public Transaction deposit(Long accountId, MoneyRequest request) {
         // 1. 거래 생성 (PENDING)
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("유저의 계좌 정보를 찾을 수 없습니다."));
 
-        Transaction tx = createTransaction(account, amount, description, TransactionType.DEPOSIT, null);
+        Transaction tx = createTransaction(
+                account,
+                request.amount(),
+                request.description(),
+                TransactionType.DEPOSIT,
+                null
+        );
 
         try {
             // 2. 잔고 업데이트
-            account.changeBalance(account.getBalance().add(amount));
+            account.changeBalance(account.getBalance().add(request.amount()));
 
             // 3. 성공 처리
             tx.setStatus(TransactionStatus.SUCCESS);
@@ -69,16 +77,22 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction withdraw(Long accountId, BigDecimal amount, String description) {
+    public Transaction withdraw(Long accountId, MoneyRequest request) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("유저의 계좌 정보를 찾을 수 없습니다."));
 
-        Transaction tx = createTransaction(account, amount, description, TransactionType.WITHDRAW, null);
+        Transaction tx = createTransaction(
+                account,
+                request.amount(),
+                request.description(),
+                TransactionType.WITHDRAW,
+                null
+        );
 
         try {
-            if (balanceValidatorService.validateWithdrawal(accountId, amount)) {
+            if (balanceValidatorService.validateWithdrawal(accountId, request.amount())) {
                 // 2. 잔고 업데이트
-                account.changeBalance(account.getBalance().subtract(amount));
+                account.changeBalance(account.getBalance().subtract(request.amount()));
                 // 3. 성공 처리
                 tx.setStatus(TransactionStatus.SUCCESS);
                 log.info("출금 완료:: {}", tx.getTransactionId());
@@ -95,25 +109,31 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction transfer(Long accountId, Long toAccountId, BigDecimal amount, String description) {
+    public Transaction transfer(Long accountId, TransferRequest request) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("유저의 계좌 정보를 찾을 수 없습니다."));
 
-        Account toAccount = accountRepository.findById(toAccountId)
+        Account toAccount = accountRepository.findById(request.toAccountId())
                 .orElseThrow(() -> new RuntimeException("받는 계좌가 유효하지 않습니다."));
 
-        Transaction tx = createTransaction(account, amount, description, TransactionType.TRANSFER, toAccount);
+        Transaction tx = createTransaction(
+                account,
+                request.amount(),
+                request.description(),
+                TransactionType.TRANSFER,
+                toAccount
+        );
 
         try {
             BigDecimal fee = tx.getFee();
-            if (balanceValidatorService.validateTransfer(accountId, amount.add(fee))) {
+            if (balanceValidatorService.validateTransfer(accountId, request.amount().add(fee))) {
                 // 2. 잔고 업데이트
-                account.changeBalance(account.getBalance().subtract(amount).subtract(fee));
+                account.changeBalance(account.getBalance().subtract(request.amount()).subtract(fee));
                 accountRepository.save(account);
 
                 log.info("출금 완료:: {}", tx.getTransactionId());
 
-                toAccount.changeBalance(toAccount.getBalance().add(amount));
+                toAccount.changeBalance(toAccount.getBalance().add(request.amount()));
                 accountRepository.save(toAccount);
                 log.info("입금 완료:: {}", tx.getTransactionId());
 

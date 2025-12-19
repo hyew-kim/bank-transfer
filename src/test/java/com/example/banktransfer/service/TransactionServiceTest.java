@@ -4,7 +4,9 @@ import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.global.annotation.IntegrationTest;
 import com.example.banktransfer.global.fixture.AccountFixture;
-import com.example.banktransfer.transaction.domain.entity.Transaction;
+import com.example.banktransfer.transaction.TransactionType;
+import com.example.banktransfer.transaction.domain.dto.MoneyRequest;
+import com.example.banktransfer.transaction.domain.dto.TransferRequest;
 import com.example.banktransfer.transaction.repository.TransactionRepository;
 import com.example.banktransfer.transaction.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +31,8 @@ public class TransactionServiceTest {
 
     @BeforeEach
     void setUpAccount() {
+        transactionRepository.deleteAll();
+        accountRepository.deleteAll();
         Account testAccount = AccountFixture.createAccountWithBalance(ACCOUNT_HOLDER, INIT_BALANCE);
         accountRepository.save(testAccount);
     }
@@ -40,7 +44,10 @@ public class TransactionServiceTest {
                 .orElseThrow(() -> new RuntimeException("Not found"));
 
         BigDecimal depositAmount = BigDecimal.valueOf(1000);
-        transactionService.deposit(testAccount.getId(), depositAmount, "test 입금");
+        transactionService.deposit(
+                testAccount.getId(),
+                new MoneyRequest(depositAmount, "test 입금")
+        );
 
         assertThat(transactionRepository.count())
                 .as("거래 내역 생성 실패")
@@ -62,7 +69,10 @@ public class TransactionServiceTest {
                 .orElseThrow(() -> new RuntimeException("Not found"));
         BigDecimal withdrawAmount = BigDecimal.valueOf(550);
 
-        transactionService.withdraw(testAccount.getId(), withdrawAmount, "test 출금");
+        transactionService.withdraw(
+                testAccount.getId(),
+                new MoneyRequest(withdrawAmount, "test 출금")
+        );
 
         assertThat(transactionRepository.count())
                 .as("거래 내역 생성 실패")
@@ -88,7 +98,10 @@ public class TransactionServiceTest {
 
         BigDecimal transferAmount = BigDecimal.valueOf(550);
 
-        transactionService.transfer(testAccount.getId(), toAccount.getId(), transferAmount, "test 이체");
+        transactionService.transfer(
+                testAccount.getId(),
+                new TransferRequest(toAccount.getId(), transferAmount, "test 이체")
+        );
 
         assertThat(transactionRepository.count())
                 .as("거래 내역 생성 실패")
@@ -102,9 +115,10 @@ public class TransactionServiceTest {
                 .findByHolderName("테스터어")
                 .orElseThrow(() -> new RuntimeException("Not found"));
 
+        BigDecimal fee = transferAmount.multiply(TransactionType.TRANSFER.getFeeRate());
         assertThat(updatedAccount.getBalance())
                 .as("이체 로직 실패 - 계좌 소유주 잔액 정합성")
-                .isEqualByComparingTo(INIT_BALANCE.subtract(transferAmount));
+                .isEqualByComparingTo(INIT_BALANCE.subtract(transferAmount).subtract(fee));
 
         assertThat(updatedToAccount.getBalance())
                 .as("이체 로직 실패 - 이체 대상 잔액 정합성")

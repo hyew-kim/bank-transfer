@@ -19,43 +19,30 @@ public class TransactionController {
 
     @PostMapping("/deposit")
     public ResponseEntity<TransactionResponse> deposit(
-            @PathVariable Long accountId,
-            @Valid @RequestBody MoneyRequest request) {
+        @PathVariable Long accountId,
+        @Valid @RequestBody MoneyRequest request) {
 
-        Transaction tx = transactionService.deposit(
-                accountId,
-                request.amount(),
-                request.description()
-        );
+        Transaction tx = transactionService.deposit(accountId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(TransactionResponse.from(tx));
     }
 
     @PostMapping("/withdraw")
     public ResponseEntity<TransactionResponse> withdraw(
-            @PathVariable Long accountId,
-            @Valid @RequestBody MoneyRequest request) {
+        @PathVariable Long accountId,
+        @Valid @RequestBody MoneyRequest request) {
 
-        Transaction tx = transactionService.withdraw(
-                accountId,
-                request.amount(),
-                request.description()
-        );
+        Transaction tx = transactionService.withdraw(accountId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(TransactionResponse.from(tx));
     }
 
     @PostMapping("/transfer")
     public ResponseEntity<TransactionResponse> transfer(
-            @PathVariable Long accountId,
-            @Valid @RequestBody TransferRequest request) {
+        @PathVariable Long accountId,
+        @Valid @RequestBody TransferRequest request) {
 
-        Transaction tx = transactionService.transfer(
-                accountId,
-                request.toAccountId(),
-                request.amount(),
-                request.description()
-        );
+        Transaction tx = transactionService.transfer(accountId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(TransactionResponse.from(tx));
     }
