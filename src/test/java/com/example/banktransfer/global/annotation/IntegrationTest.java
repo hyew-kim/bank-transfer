@@ -1,5 +1,6 @@
 package com.example.banktransfer.global.annotation;
 
+import com.example.banktransfer.global.config.TestSupportConfiguration;
 import com.example.banktransfer.global.config.TestcontainerConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -14,7 +15,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
 @ActiveProfiles(profiles = "integration")
-@Import(TestcontainerConfiguration.class)
+@Import({TestcontainerConfiguration.class, TestSupportConfiguration.class})
 public @interface IntegrationTest {
 
 }

@@ -22,16 +22,16 @@ class TestcontainerConnectionTest {
 
             System.out.println("===== Testcontainers 연결 정보 =====");
             System.out.println("JDBC URL: " + metaData.getURL());
-            // 출력: jdbc:mysql://localhost:32768/bank_test ✅
+            // 출력: jdbc:mysql://localhost:32768/bank_test
 
             System.out.println("Username: " + metaData.getUserName());
-            // 출력: test@localhost ✅
+            // 출력: test@localhost
 
             System.out.println("Product: " + metaData.getDatabaseProductName());
-            // 출력: MySQL ✅
+            // 출력: MySQL
 
             System.out.println("Version: " + metaData.getDatabaseProductVersion());
-            // 출력: 8.0.xx ✅
+            // 출력: 8.0.xx
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

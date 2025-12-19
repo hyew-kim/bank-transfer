@@ -8,11 +8,6 @@ import org.testcontainers.utility.DockerImageName;
 
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainerConfiguration {
-    static {
-        // ✅ Docker API 버전 강제 설정
-        System.setProperty("DOCKER_API_VERSION", "1.41");
-    }
-
     @Bean
     @ServiceConnection
     MySQLContainer<?> mysqlContainer() {

@@ -3,6 +3,7 @@ package com.example.banktransfer.repository;
 import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.global.annotation.IntegrationTest;
+import com.example.banktransfer.global.config.BaseIntegrationTest;
 import com.example.banktransfer.global.fixture.AccountFixture;
 import com.example.banktransfer.transaction.TransactionStatus;
 import com.example.banktransfer.global.fixture.TransactionFixture;
@@ -19,7 +20,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @IntegrationTest
-public class TransactionSearchRepositoryTest {
+public class TransactionSearchRepositoryTest extends BaseIntegrationTest {
     @Autowired
     private TransactionRepository transactionRepository;
     @Autowired
@@ -31,8 +32,6 @@ public class TransactionSearchRepositoryTest {
 
     @BeforeEach
     void setUp() throws InterruptedException {
-        transactionRepository.deleteAll();
-        accountRepository.deleteAll();
         Account account = AccountFixture.createAccountWithBalance("repo-tester", BigDecimal.valueOf(1000));
         accountRepository.save(account);
 
