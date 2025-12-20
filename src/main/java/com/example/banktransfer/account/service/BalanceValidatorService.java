@@ -16,7 +16,7 @@ public class BalanceValidatorService {
         // 1. 일 한도 검증
         Account account = accountRepository
                 .findById(accountId)
-                .orElseThrow(() -> new RuntimeException("No account with id: " + accountId));
+                .orElseThrow(() -> new IllegalArgumentException("No account with id: " + accountId));
 
         BigDecimal remainingLimit = account.getDailyLimitOfWithdrawal();
 
@@ -39,7 +39,7 @@ public class BalanceValidatorService {
         // 1. 일 한도 검증
         Account account = accountRepository
                 .findById(accountId)
-                .orElseThrow(() -> new RuntimeException("No account with id: " + accountId));
+                .orElseThrow(() -> new IllegalArgumentException("No account with id: " + accountId));
 
         BigDecimal remainingLimit = account.getDailyLimitOfTransfer();
 

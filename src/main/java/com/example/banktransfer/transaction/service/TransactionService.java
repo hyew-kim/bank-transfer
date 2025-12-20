@@ -10,7 +10,6 @@ import com.example.banktransfer.transaction.domain.dto.TransactionResponse;
 import com.example.banktransfer.transaction.domain.dto.TransferRequest;
 import com.example.banktransfer.transaction.domain.entity.Transaction;
 import com.example.banktransfer.transaction.repository.TransactionRepository;
-import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,34 +24,16 @@ import java.util.List;
 public class TransactionService {
     private final BalanceValidatorService balanceValidatorService;
     private final AccountRepository accountRepository;
+    private final TransactionRecordService transactionRecordService;
     private final TransactionRepository transactionRepository;
-
-    private Transaction createTransaction(Account account, BigDecimal amount, String description, TransactionType type, @Nullable Account toAccount) {
-        Transaction tx = Transaction.builder()
-                .type(type)
-                .amount(amount)
-                .toAccountNumber(account.getAccountNumber())
-                .toHolderName(account.getHolderName())
-                .fromAccountNumber(toAccount != null ? toAccount.getAccountNumber() : null)
-                .fromHolderName(toAccount != null ? toAccount.getHolderName() : null)
-                .description(description)
-                .fee(amount.multiply(type.getFeeRate()))
-                .feeRate(type.getFeeRate())
-                .account(account)
-                .build();
-
-        transactionRepository.save(tx);
-
-        return tx;
-    }
 
     @Transactional
     public Transaction deposit(Long accountId, MoneyRequest request) {
         // 1. 거래 생성 (PENDING)
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("유저의 계좌 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("유저의 계좌 정보를 찾을 수 없습니다."));
 
-        Transaction tx = createTransaction(
+        Transaction tx = transactionRecordService.createPending(
                 account,
                 request.amount(),
                 request.description(),
@@ -61,16 +42,18 @@ public class TransactionService {
         );
 
         try {
+            if (request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("입금 금액은 0보다 커야 합니다.");
+            }
             // 2. 잔고 업데이트
             account.changeBalance(account.getBalance().add(request.amount()));
 
             // 3. 성공 처리
-            tx.setStatus(TransactionStatus.SUCCESS);
+            transactionRecordService.markSuccess(tx.getTransactionId());
             log.info("입금 완료:: {}", tx.getTransactionId());
         } catch (Exception ex) {
             // 4. 실패 처리
-            tx.setStatus(TransactionStatus.FAILED);
-            tx.setFailureReason(ex.getMessage());
+            transactionRecordService.markFailed(tx.getTransactionId(), ex.getMessage());
 
             throw new RuntimeException(tx.getTransactionId(), ex);
         }
@@ -81,9 +64,9 @@ public class TransactionService {
     @Transactional
     public Transaction withdraw(Long accountId, MoneyRequest request) {
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("유저의 계좌 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("유저의 계좌 정보를 찾을 수 없습니다."));
 
-        Transaction tx = createTransaction(
+        Transaction tx = transactionRecordService.createPending(
                 account,
                 request.amount(),
                 request.description(),
@@ -96,14 +79,13 @@ public class TransactionService {
                 // 2. 잔고 업데이트
                 account.changeBalance(account.getBalance().subtract(request.amount()));
                 // 3. 성공 처리
-                tx.setStatus(TransactionStatus.SUCCESS);
+                transactionRecordService.markSuccess(tx.getTransactionId());
                 log.info("출금 완료:: {}", tx.getTransactionId());
             }
 
         } catch (Exception ex) {
             // 4. 실패 처리
-            tx.setStatus(TransactionStatus.FAILED);
-            tx.setFailureReason(ex.getMessage());
+            transactionRecordService.markFailed(tx.getTransactionId(), ex.getMessage());
 
             throw new RuntimeException(tx.getTransactionId(), ex);
         }
@@ -114,20 +96,22 @@ public class TransactionService {
     @Transactional
     public Transaction transfer(Long accountId, TransferRequest request) {
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("유저의 계좌 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("유저의 계좌 정보를 찾을 수 없습니다."));
 
-        Account toAccount = accountRepository.findById(request.toAccountId())
-                .orElseThrow(() -> new RuntimeException("받는 계좌가 유효하지 않습니다."));
-
-        Transaction tx = createTransaction(
-                account,
-                request.amount(),
-                request.description(),
-                TransactionType.TRANSFER,
-                toAccount
-        );
+        Transaction tx = null;
 
         try {
+            Account toAccount = accountRepository.findById(request.toAccountId())
+                    .orElseThrow(() -> new IllegalArgumentException("받는 계좌가 유효하지 않습니다."));
+
+            tx = transactionRecordService.createPending(
+                    account,
+                    request.amount(),
+                    request.description(),
+                    TransactionType.TRANSFER,
+                    toAccount
+            );
+
             BigDecimal fee = tx.getFee();
             if (balanceValidatorService.validateTransfer(accountId, request.amount().add(fee))) {
                 // 2. 잔고 업데이트
@@ -141,13 +125,21 @@ public class TransactionService {
                 log.info("입금 완료:: {}", tx.getTransactionId());
 
                 // 3. 성공 처리
-                tx.setStatus(TransactionStatus.SUCCESS);
+                transactionRecordService.markSuccess(tx.getTransactionId());
                 log.info("이체 완료:: {}", tx.getTransactionId());
             }
         } catch (Exception ex) {
+            if (tx == null) {
+                tx = transactionRecordService.createPending(
+                        account,
+                        request.amount(),
+                        request.description(),
+                        TransactionType.TRANSFER,
+                        null
+                );
+            }
             // 4. 실패 처리
-            tx.setStatus(TransactionStatus.FAILED);
-            tx.setFailureReason(ex.getMessage());
+            transactionRecordService.markFailed(tx.getTransactionId(), ex.getMessage());
 
             throw new RuntimeException(tx.getTransactionId(), ex);
         }
