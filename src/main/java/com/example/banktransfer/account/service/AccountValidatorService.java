@@ -9,15 +9,17 @@ import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
-public class BalanceValidatorService {
+public class AccountValidatorService {
     private final AccountRepository accountRepository;
 
-    public boolean validateWithdrawal(Long accountId, BigDecimal amount) {
-        // 1. 일 한도 검증
-        Account account = accountRepository
+    public Account getAccountOrThrow(Long accountId) {
+        return accountRepository
                 .findById(accountId)
-                .orElseThrow(() -> new IllegalArgumentException("No account with id: " + accountId));
+                .orElseThrow(() -> new IllegalArgumentException("계좌 정보를 찾을 수 없습니다.:: " + accountId));
+    }
 
+    public void validateWithdrawal(Account account, BigDecimal amount) {
+        // 1. 일 한도 검증
         BigDecimal remainingLimit = account.getDailyLimitOfWithdrawal();
 
         if (amount.compareTo(remainingLimit) > 0) {
@@ -31,16 +33,10 @@ public class BalanceValidatorService {
         if (expectedBalance.compareTo(BigDecimal.ZERO) < 0) {
             throw new RuntimeException("잔액 부족::잔액: " + balance);
         }
-
-        return true;
     }
 
-    public boolean validateTransfer(Long accountId, BigDecimal amount) {
+    public void validateTransfer(Account account, BigDecimal amount) {
         // 1. 일 한도 검증
-        Account account = accountRepository
-                .findById(accountId)
-                .orElseThrow(() -> new IllegalArgumentException("No account with id: " + accountId));
-
         BigDecimal remainingLimit = account.getDailyLimitOfTransfer();
 
         if (amount.compareTo(remainingLimit) > 0) {
@@ -54,7 +50,5 @@ public class BalanceValidatorService {
         if (expectedBalance.compareTo(BigDecimal.ZERO) < 0) {
             throw new RuntimeException("잔액 부족::잔액: " +  balance);
         }
-
-        return true;
     }
 }

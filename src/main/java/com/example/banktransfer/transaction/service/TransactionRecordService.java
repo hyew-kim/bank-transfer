@@ -43,6 +43,33 @@ public class TransactionRecordService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Transaction createFailed(
+            Account account,
+            BigDecimal amount,
+            String description,
+            TransactionType type,
+            @Nullable Account toAccount,
+            String reason
+    ) {
+        Transaction tx = Transaction.builder()
+                .type(type)
+                .amount(amount)
+                .toAccountNumber(account.getAccountNumber())
+                .toHolderName(account.getHolderName())
+                .fromAccountNumber(toAccount != null ? toAccount.getAccountNumber() : null)
+                .fromHolderName(toAccount != null ? toAccount.getHolderName() : null)
+                .description(description)
+                .fee(amount.multiply(type.getFeeRate()))
+                .feeRate(type.getFeeRate())
+                .status(TransactionStatus.FAILED)
+                .failureReason(reason)
+                .account(account)
+                .build();
+
+        return transactionRepository.save(tx);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markSuccess(String transactionId) {
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new RuntimeException("거래 내역을 찾을 수 없습니다.:: " + transactionId));
