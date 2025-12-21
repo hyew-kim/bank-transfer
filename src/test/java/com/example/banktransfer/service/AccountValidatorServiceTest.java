@@ -2,7 +2,7 @@ package com.example.banktransfer.service;
 
 import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
-import com.example.banktransfer.account.service.BalanceValidatorService;
+import com.example.banktransfer.account.service.AccountValidatorService;
 import com.example.banktransfer.global.annotation.IntegrationTest;
 import com.example.banktransfer.global.config.BaseIntegrationTest;
 import com.example.banktransfer.global.fixture.AccountFixture;
@@ -11,13 +11,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @IntegrationTest
-class BalanceValidatorServiceTest extends BaseIntegrationTest {
+class AccountValidatorServiceTest extends BaseIntegrationTest {
     @Autowired
-    private BalanceValidatorService balanceValidatorService;
+    private AccountValidatorService accountValidatorService;
     @Autowired
     private AccountRepository accountRepository;
 
@@ -27,8 +27,9 @@ class BalanceValidatorServiceTest extends BaseIntegrationTest {
         Account testAccount = AccountFixture.createRichAccount(DEFAULT_TEST_NAME);
         accountRepository.save(testAccount);
 
-        assertThat(balanceValidatorService.validateWithdrawal(testAccount.getId(), BigDecimal.valueOf(3000)))
-                .isEqualTo(true);
+        assertThatCode(() -> accountValidatorService
+                .validateWithdrawal(testAccount, BigDecimal.valueOf(3000)))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -36,8 +37,8 @@ class BalanceValidatorServiceTest extends BaseIntegrationTest {
         Account testAccount = AccountFixture.createPoorAccount(DEFAULT_TEST_NAME);
         accountRepository.save(testAccount);
 
-        assertThatThrownBy(() -> balanceValidatorService
-                .validateWithdrawal(testAccount.getId(), BigDecimal.valueOf(888888)))
+        assertThatThrownBy(() -> accountValidatorService
+                .validateWithdrawal(testAccount, BigDecimal.valueOf(888888)))
                 .satisfies(ex -> System.out.println(ex.getMessage()))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("잔액 부족");
@@ -48,8 +49,8 @@ class BalanceValidatorServiceTest extends BaseIntegrationTest {
         Account testAccount = AccountFixture.createPoorAccount(DEFAULT_TEST_NAME);
         accountRepository.save(testAccount);
 
-        assertThatThrownBy(() -> balanceValidatorService
-                .validateTransfer(testAccount.getId(), BigDecimal.valueOf(1000000)))
+        assertThatThrownBy(() -> accountValidatorService
+                .validateTransfer(testAccount, BigDecimal.valueOf(1000000)))
                 .satisfies(ex -> System.out.println(ex.getMessage()))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("잔액 부족");
@@ -60,8 +61,8 @@ class BalanceValidatorServiceTest extends BaseIntegrationTest {
         Account testAccount = AccountFixture.createPoorAccount(DEFAULT_TEST_NAME);
         accountRepository.save(testAccount);
 
-        assertThatThrownBy(() -> balanceValidatorService
-                .validateWithdrawal(testAccount.getId(),BigDecimal.valueOf(10000001)))
+        assertThatThrownBy(() -> accountValidatorService
+                .validateWithdrawal(testAccount,BigDecimal.valueOf(10000001)))
                 .satisfies(ex -> System.out.println(ex.getMessage()))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("일 한도");
@@ -72,8 +73,8 @@ class BalanceValidatorServiceTest extends BaseIntegrationTest {
         Account testAccount = AccountFixture.createPoorAccount(DEFAULT_TEST_NAME);
         accountRepository.save(testAccount);
 
-        assertThatThrownBy(() -> balanceValidatorService
-                .validateTransfer(testAccount.getId(), BigDecimal.valueOf(30000001)))
+        assertThatThrownBy(() -> accountValidatorService
+                .validateTransfer(testAccount, BigDecimal.valueOf(30000001)))
                 .satisfies(ex -> System.out.println(ex.getMessage()))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("일 한도");
