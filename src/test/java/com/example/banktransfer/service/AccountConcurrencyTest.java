@@ -24,8 +24,11 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
     private AccountRepository accountRepository;
 
     @Test
-    void 동일한_사용자의_연속_계좌개설_1개만_성공() throws InterruptedException {
+    void 동일한_사용자의_연속_계좌등록_1개만_성공() throws InterruptedException {
         String holderName = "Junit-tester";
+        Long userId = 1L;
+        String bankCode = "777";
+        String accountNumber = "77700000000010";
         int threadCount = 10;
 
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -43,11 +46,16 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
                     proceedLatch.await(10, TimeUnit.SECONDS);
 
                     try {
-                        accountService.createAccount(CreateAccountRequest.of(holderName));
+                        accountService.createAccount(CreateAccountRequest.of(
+                                userId,
+                                bankCode,
+                                accountNumber,
+                                holderName
+                        ));
                         successCount.incrementAndGet(); // 예외 없이 끝난 경우
                     } catch (IllegalStateException ex) {
-                        // "이미 개설 진행 중"만 카운트
-                        if (ex.getMessage().contains("이미 개설 진행 중")) {
+                        // "이미 등록 진행 중"만 카운트
+                        if (ex.getMessage().contains("이미 등록 진행 중")) {
                             inProgressRejected.incrementAndGet();
                         } else {
                             otherError.incrementAndGet();
