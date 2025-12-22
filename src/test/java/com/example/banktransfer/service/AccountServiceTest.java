@@ -23,11 +23,18 @@ public class AccountServiceTest extends BaseIntegrationTest {
     private AccountRepository accountRepository;
     @Autowired
     private ProgressRecorder progressRecorder;
+    private static final Long USER_ID = 1L;
+    private static final String BANK_CODE = "777";
 
     @Test
-    public void 한명의_계좌개설_성공() {
+    public void 한개의_계좌등록_성공() {
         String holderName = "Junit-tester";
-        CreateAccountRequest request = CreateAccountRequest.of(holderName);
+        CreateAccountRequest request = CreateAccountRequest.of(
+                USER_ID,
+                BANK_CODE,
+                "77700000000001",
+                holderName
+        );
 
         accountService.createAccount(request);
         Account account = accountRepository.findByHolderName(holderName).orElse(null);
@@ -39,7 +46,12 @@ public class AccountServiceTest extends BaseIntegrationTest {
     @Test
     public void 계좌보유_유저의_계좌해지_성공() {
         String holderName = "Junit-tester";
-        CreateAccountRequest request = CreateAccountRequest.of(holderName);
+        CreateAccountRequest request = CreateAccountRequest.of(
+                USER_ID,
+                BANK_CODE,
+                "77700000000002",
+                holderName
+        );
 
         accountService.createAccount(request);
         Account account = accountRepository
@@ -60,7 +72,12 @@ public class AccountServiceTest extends BaseIntegrationTest {
     @Test
     public void 계좌해지_진행중_중복요청_차단() {
         String holderName = "Junit-tester";
-        CreateAccountRequest request = CreateAccountRequest.of(holderName);
+        CreateAccountRequest request = CreateAccountRequest.of(
+                USER_ID,
+                BANK_CODE,
+                "77700000000003",
+                holderName
+        );
 
         accountService.createAccount(request);
         Account account = accountRepository
@@ -78,7 +95,12 @@ public class AccountServiceTest extends BaseIntegrationTest {
     @Test
     public void 예금주명으로_계좌조회_성공() {
         String holderName = "Junit-tester";
-        CreateAccountRequest request = CreateAccountRequest.of(holderName);
+        CreateAccountRequest request = CreateAccountRequest.of(
+                USER_ID,
+                BANK_CODE,
+                "77700000000004",
+                holderName
+        );
 
         accountService.createAccount(request);
         AccountResponse account = accountService.searchAccount(holderName);

@@ -1,8 +1,11 @@
-### 계좌 개설 API
+### 계좌 등록 API
 POST http://localhost:8080/api/accounts
 Content-Type: application/json
 
 {
+  "userId": 1,
+  "bankCode": "777",
+  "accountNumber": "77700000000001",
   "holderName": "janny"
 }
 
@@ -14,6 +17,15 @@ client.test("Status", function() {
 
 ### 계좌 조회 API
 GET http://localhost:8080/api/accounts/1
+
+> {%
+    client.test("Status", function() {
+        client.assert(response.status, 200, "상태코드 200 확인");
+    });
+%}
+
+### 계좌 조회 API (등록 정보로 조회)
+GET http://localhost:8080/api/accounts?userId=1&bankCode=777&accountNumber=77700000000001
 
 > {%
     client.test("Status", function() {

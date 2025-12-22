@@ -10,10 +10,11 @@ import com.example.banktransfer.global.progress.ProgressStatus;
 import com.example.banktransfer.global.support.OptimisticLockingRetryExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -41,16 +42,40 @@ public class AccountService {
         return AccountResponse.from(account);
     }
 
+    @Transactional(readOnly = true)
+    public List<AccountResponse> searchAccount(Long userId, String bankCode, String accountNumber) {
+        return accountRepository
+                .findByUserIdAndBankCodeAndAccountNumber(userId, bankCode, accountNumber)
+                .map(AccountResponse::from)
+                .stream()
+                .toList();
+    }
+
     public void createAccount(CreateAccountRequest request) {
-        String progressKey = "account:create:" + request.holderName();
+        String progressKey = String.format(
+                "account:link:in-progress:%d:%s:%s",
+                request.userId(),
+                request.bankCode(),
+                request.accountNumber()
+        );
         boolean started = progressRecorder.tryStart(progressKey);
         if (!started) {
-            throw new IllegalStateException("이미 개설 진행 중입니다.");
+            throw new IllegalStateException("이미 등록 진행 중입니다.");
         }
 
         try {
+            if (accountRepository.existsByUserIdAndBankCodeAndAccountNumber(
+                    request.userId(),
+                    request.bankCode(),
+                    request.accountNumber()
+            )) {
+                throw new IllegalStateException("이미 등록된 계좌입니다.");
+            }
             Account account = optimisticLockingRetryExecutor.execute(() -> {
                 Account newAccount = Account.builder()
+                        .userId(request.userId())
+                        .bankCode(request.bankCode())
+                        .accountNumber(request.accountNumber())
                         .holderName(request.holderName())
                         .build();
 
@@ -58,6 +83,10 @@ public class AccountService {
             });
             progressRecorder.record(progressKey, ProgressStatus.SUCCESS, "accountId=" + account.getId());
             progressRecorder.delete(progressKey);
+        } catch (DataIntegrityViolationException ex) {
+            progressRecorder.record(progressKey, ProgressStatus.FAILED, "이미 등록된 계좌입니다.");
+            progressRecorder.delete(progressKey);
+            throw new IllegalStateException("이미 등록된 계좌입니다.", ex);
         } catch (Exception ex) {
             progressRecorder.record(progressKey, ProgressStatus.FAILED, ex.getMessage());
             progressRecorder.delete(progressKey);

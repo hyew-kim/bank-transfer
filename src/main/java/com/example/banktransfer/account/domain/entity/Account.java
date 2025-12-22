@@ -8,28 +8,37 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Entity
-@Table(name = "accounts")
+@Table(
+        name = "accounts",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_account_user_bank_number",
+                        columnNames = {"user_id", "bank_code", "account_number"}
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class Account {
-    private static final String GENERAL_FINANCE = "00";
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Getter
     private Long id;
 
-    @Column(name = "account_number", unique = true, nullable = false, length = 14)
+    @Column(name = "account_number", nullable = false, length = 14)
     @Getter
     private String accountNumber;
 
-    @Column(length = 3)
-    @Builder.Default
-    private String bankCode = "777"; //TODO: 유저가 여러 은행 계좌를 가지도록 확장
+    @Column(name = "bank_code", nullable = false, length = 3)
+    @Getter
+    private String bankCode;
+
+    @Column(name = "user_id", nullable = false)
+    @Getter
+    private Long userId;
 
     @Column(name = "holder_name", length = 50)
     @Getter
@@ -66,10 +75,16 @@ public class Account {
     private LocalDateTime updatedAt;
 
     @PrePersist
-    protected void generateAccountNumber() {
-        String uniqueId = String.format("%09d", ThreadLocalRandom.current().nextInt(999999999));
-
-        this.accountNumber = String.format("%s%s%s", this.bankCode, GENERAL_FINANCE, uniqueId);
+    protected void validateRequiredFields() {
+        if (userId == null) {
+            throw new IllegalStateException("사용자 ID가 필요합니다.");
+        }
+        if (bankCode == null || bankCode.isBlank()) {
+            throw new IllegalStateException("은행코드가 필요합니다.");
+        }
+        if (accountNumber == null || accountNumber.isBlank()) {
+            throw new IllegalStateException("계좌번호가 필요합니다.");
+        }
     }
 
     public void changeAccountStatus(AccountStatus tobeStatus) {
