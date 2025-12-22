@@ -53,7 +53,7 @@ public class AccountService {
 
     public void createAccount(CreateAccountRequest request) {
         String progressKey = String.format(
-                "account:link:in-progress:%d:%s:%s",
+                "account:%d:%s:%s",
                 request.userId(),
                 request.bankCode(),
                 request.accountNumber()
