@@ -5,14 +5,21 @@ import com.example.banktransfer.account.domain.dto.AccountResponse;
 import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.domain.dto.CreateAccountRequest;
 import com.example.banktransfer.account.repository.AccountRepository;
+import com.example.banktransfer.global.progress.ProgressRecorder;
+import com.example.banktransfer.global.progress.ProgressStatus;
+import com.example.banktransfer.global.support.OptimisticLockingRetryExecutor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AccountService {
     private final AccountRepository accountRepository;
+    private final OptimisticLockingRetryExecutor optimisticLockingRetryExecutor;
+    private final ProgressRecorder progressRecorder;
 
     @Transactional(readOnly = true)
     public AccountResponse searchAccount(String holderName) {
@@ -32,27 +39,51 @@ public class AccountService {
         return AccountResponse.from(account);
     }
 
-    @Transactional
     public void createAccount(CreateAccountRequest request) {
-        String holderName = request.holderName();
-
-        if (accountRepository.existsByHolderName(holderName)) {
-            throw new RuntimeException("이미 계좌가 존재합니다.:: 가입자명 - " + holderName);
+        String progressKey = "account:create:" + request.holderName();
+        ProgressStatus currentStatus = progressRecorder.getStatus(progressKey);
+        if (ProgressStatus.PROCESSING == currentStatus) {
+            throw new RuntimeException("이미 개설 진행 중입니다.");
         }
+        progressRecorder.record(progressKey, ProgressStatus.PROCESSING, null);
 
-        Account account = Account.builder()
-                .holderName(holderName)
-                .build();
+        try {
+            Account account = optimisticLockingRetryExecutor.execute(() -> {
+                Account newAccount = Account.builder()
+                        .holderName(request.holderName())
+                        .build();
 
-        accountRepository.save(account);
+                return accountRepository.save(newAccount);
+            });
+            progressRecorder.record(progressKey, ProgressStatus.SUCCESS, "accountId=" + account.getId());
+            progressRecorder.delete(progressKey);
+        } catch (Exception ex) {
+            progressRecorder.record(progressKey, ProgressStatus.FAILED, ex.getMessage());
+            throw ex;
+        }
     }
 
-    @Transactional
     public void closeAccount(Long accountId) {
-        Account userAccount = accountRepository
-                .findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Account does not exists:: accountId - " + accountId));
+        String progressKey = "account:close:" + accountId;
+        ProgressStatus currentStatus = progressRecorder.getStatus(progressKey);
+        if (ProgressStatus.PROCESSING == currentStatus) {
+            throw new RuntimeException("이미 해지 진행 중입니다.");
+        }
+        progressRecorder.record(progressKey, ProgressStatus.PROCESSING, null);
 
-        userAccount.changeAccountStatus(AccountStatus.CLOSED);
+        try {
+            optimisticLockingRetryExecutor.run(() -> {
+                Account userAccount = accountRepository
+                        .findById(accountId)
+                        .orElseThrow(() -> new RuntimeException("Account does not exists:: accountId - " + accountId));
+
+                userAccount.changeAccountStatus(AccountStatus.CLOSED);
+            });
+            progressRecorder.record(progressKey, ProgressStatus.SUCCESS, null);
+            progressRecorder.delete(progressKey);
+        } catch (Exception ex) {
+            progressRecorder.record(progressKey, ProgressStatus.FAILED, ex.getMessage());
+            throw ex;
+        }
     }
 }

@@ -55,6 +55,9 @@ public class Account {
     @Getter
     private BigDecimal dailyLimitOfTransfer = BigDecimal.valueOf(3_000_000);
 
+    @Version
+    private Long version;
+
     @Column(updatable = false)
     @CreatedDate
     private LocalDateTime createdAt;

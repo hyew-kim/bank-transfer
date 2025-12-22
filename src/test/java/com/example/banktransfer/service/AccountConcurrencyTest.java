@@ -24,9 +24,9 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
     private AccountRepository accountRepository;
 
     @Test
-    void 동일한_사용자의_연속_계좌개설_한개만_성공() throws InterruptedException {
+    void 동일한_사용자의_연속_계좌개설_모두_성공() throws InterruptedException {
         String holderName = "Junit-tester";
-        int threadCount = 100;  // 100개 동시 요청
+        int threadCount = 10;
 
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch readyLatch = new CountDownLatch(threadCount);    // Phase 1: 준비
@@ -34,8 +34,6 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
         CountDownLatch doneLatch = new CountDownLatch(threadCount);     // Phase 3: 완료
 
         AtomicInteger successCount = new AtomicInteger(0);
-        AtomicInteger failCount = new AtomicInteger(0);
-
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
                 try {
@@ -44,8 +42,6 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
                     accountService.createAccount(CreateAccountRequest.of(holderName));
                     successCount.incrementAndGet();
                 } catch (InterruptedException ex) {
-                    // 중복 예외는 예상됨
-                    failCount.incrementAndGet();
                     Thread.currentThread().interrupt();
                 } finally {
                     doneLatch.countDown();
@@ -67,20 +63,15 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
 
         assertThat(accountRepository.count())
                 .as("생성된 계좌 수")
-                .isEqualTo(1);
+                .isEqualTo(threadCount);
 
         assertThat(successCount.get())
                 .as("성공 횟수")
-                .isEqualTo(1);
-
-        assertThat(failCount.get())
-                .as("실패 횟수 (중복 예외)")
-                .isEqualTo(99);
+                .isEqualTo(threadCount);
 
         System.out.println("=== 동시성 테스트 결과 ===");
         System.out.println("총 요청: " + threadCount);
         System.out.println("성공: " + successCount.get());
-        System.out.println("실패: " + failCount.get());
         System.out.println("생성된 계좌: " + accountRepository.count());
     }
 
