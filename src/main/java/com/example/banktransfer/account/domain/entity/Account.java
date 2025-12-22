@@ -94,4 +94,12 @@ public class Account {
     public void changeBalance(BigDecimal toBeBalance) {
         this.balance = toBeBalance;
     }
+
+    public void decreaseDailyLimitOfWithdrawal(BigDecimal amount) {
+        this.dailyLimitOfWithdrawal = this.dailyLimitOfWithdrawal.subtract(amount);
+    }
+
+    public void decreaseDailyLimitOfTransfer(BigDecimal amount) {
+        this.dailyLimitOfTransfer = this.dailyLimitOfTransfer.subtract(amount);
+    }
 }

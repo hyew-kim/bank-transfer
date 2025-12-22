@@ -91,6 +91,7 @@ public class TransactionService {
                 Account accountForUpdate = accountValidatorService.getAccountOrThrow(accountId);
                 accountValidatorService.validateWithdrawal(accountForUpdate, request.amount());
                 accountForUpdate.changeBalance(accountForUpdate.getBalance().subtract(request.amount()));
+                accountForUpdate.decreaseDailyLimitOfWithdrawal(request.amount());
             });
             transactionRecordService.markSuccess(tx.getTransactionId());
             progressRecorder.record(tx.getTransactionId(), ProgressStatus.SUCCESS, null);
@@ -135,6 +136,7 @@ public class TransactionService {
                 accountValidatorService.validateTransfer(fromAccount, request.amount().add(fee));
 
                 fromAccount.changeBalance(fromAccount.getBalance().subtract(request.amount()).subtract(fee));
+                fromAccount.decreaseDailyLimitOfTransfer(request.amount().add(fee));
                 targetAccount.changeBalance(targetAccount.getBalance().add(request.amount()));
 
                 accountRepository.save(fromAccount);

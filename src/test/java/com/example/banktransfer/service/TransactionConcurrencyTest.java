@@ -210,4 +210,121 @@ public class TransactionConcurrencyTest extends BaseIntegrationTest {
         System.out.println("잔액: " + updatedAccount.getBalance());
         System.out.println("receiver 잔액: " + updatedToAccount.getBalance());
     }
+
+    @Test
+    public void 동시_출금은_모두_반영된다_한도체크() throws InterruptedException {
+        Account testAccount = accountRepository
+                .findByHolderName(ACCOUNT_HOLDER)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        BigDecimal initLimit = testAccount.getDailyLimitOfWithdrawal();
+
+        int threadCount = 5;
+        BigDecimal withdrawAmount = BigDecimal.valueOf(100);
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+        CountDownLatch readyLatch = new CountDownLatch(threadCount);
+        CountDownLatch proceedLatch = new CountDownLatch(1);
+        try {
+            for (int i = 0; i < threadCount; i++) {
+                executorService.execute(() -> {
+                    try {
+                        readyLatch.countDown();
+                        proceedLatch.await(30, TimeUnit.SECONDS);
+                        transactionService.withdraw(
+                                testAccount.getId(),
+                                new MoneyRequest(withdrawAmount, "동시 출금")
+                        );
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+
+            assertThat(readyLatch.await(30, TimeUnit.SECONDS))
+                    .as("모든 스레드가 중복 체크 지점까지 도착")
+                    .isTrue();
+            proceedLatch.countDown();
+            assertThat(doneLatch.await(30, TimeUnit.SECONDS))
+                    .as("모든 스레드 작업 완료")
+                    .isTrue();
+        } finally {
+            executorService.shutdown();
+        }
+
+        Account updatedAccount = accountRepository
+                .findByHolderName(ACCOUNT_HOLDER)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        assertThat(updatedAccount.getDailyLimitOfWithdrawal())
+                .isEqualByComparingTo(BigDecimal.ZERO.max(initLimit.subtract(withdrawAmount.multiply(BigDecimal.valueOf(threadCount)))));
+
+        System.out.println("=== 동시성 테스트 결과 ===");
+        System.out.println("총 요청: " + threadCount);
+        System.out.println("한도: " + updatedAccount.getDailyLimitOfWithdrawal());
+    }
+
+    @Test
+    public void 동시_이체는_모두_반영된다_한도체크() throws InterruptedException {
+        Account testAccount = accountRepository
+                .findByHolderName(ACCOUNT_HOLDER)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        BigDecimal initLimit = testAccount.getDailyLimitOfTransfer();
+
+        Account toAccount = AccountFixture.createAccountWithBalance("receiver", INIT_BALANCE);
+        accountRepository.save(toAccount);
+
+        int threadCount = 5;
+        BigDecimal transferAmount = BigDecimal.valueOf(100);
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+        CountDownLatch readyLatch = new CountDownLatch(threadCount);
+        CountDownLatch proceedLatch = new CountDownLatch(1);
+        try {
+            for (int i = 0; i < threadCount; i++) {
+                executorService.execute(() -> {
+                    try {
+                        readyLatch.countDown();
+                        proceedLatch.await(30, TimeUnit.SECONDS);
+                        transactionService.transfer(
+                                testAccount.getId(),
+                                new TransferRequest(toAccount.getId(), transferAmount, "동시 이체")
+                        );
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+            assertThat(readyLatch.await(30, TimeUnit.SECONDS))
+                    .as("모든 스레드가 중복 체크 지점까지 도착")
+                    .isTrue();
+
+            proceedLatch.countDown();
+
+            assertThat(doneLatch.await(30, TimeUnit.SECONDS))
+                    .as("모든 스레드 작업 완료")
+                    .isTrue();
+        } finally {
+            executorService.shutdown();
+        }
+
+        Account updatedAccount = accountRepository
+                .findByHolderName(ACCOUNT_HOLDER)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        BigDecimal fee = transferAmount.multiply(TransactionType.TRANSFER.getFeeRate());
+        assertThat(updatedAccount.getDailyLimitOfTransfer())
+                .isEqualByComparingTo(BigDecimal.ZERO.max(initLimit
+                        .subtract(transferAmount.multiply(BigDecimal.valueOf(threadCount)))
+                        .subtract(fee.multiply(BigDecimal.valueOf(threadCount)))));
+
+        System.out.println("=== 동시성 테스트 결과 ===");
+        System.out.println("총 요청: " + threadCount);
+        System.out.println("한도: " + updatedAccount.getDailyLimitOfTransfer());
+    }
 }
