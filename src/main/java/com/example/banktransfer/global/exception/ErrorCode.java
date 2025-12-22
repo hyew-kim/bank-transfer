@@ -13,16 +13,14 @@ public enum ErrorCode {
     ACCOUNT_LOCKED(409, "계좌 잠김"),
     INSUFFICIENT_BALANCE(400, "잔고가 부족합니다."),
     DAILY_LIMIT_EXCEEDED(400, "일일 한도 초과"),
-    MONTHLY_LIMIT_EXCEEDED(400, "월 한도 초과"),
 
     // 송금 모듈 (TRANSFER_ prefix)
-    TRANSFER_LIMIT_EXCEEDED(400, "이체 한도 초과"),
     TRANSFER_IN_PROGRESS(409, "이체 진행 중입니다."),
     RECEIVER_ACCOUNT_CLOSED(400, "수취 계좌가 해지되었습니다."),
-    CONCURRENT_MODIFICATION(409, "동시성 충돌"),
+    INVALID_INPUT(400, "올바르지 않은 금액이 입력되었습니다."),
 
     // 공통
-    INVALID_INPUT(400, "올바르지 않은 금액이 입력되었습니다."),
+    CONCURRENT_MODIFICATION(409, "동시성 충돌"),
     UNAUTHORIZED(401, "권한이 없습니다.");
 
     private final int status;
