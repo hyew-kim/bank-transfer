@@ -9,6 +9,7 @@ import com.example.banktransfer.global.progress.ProgressRecorder;
 import com.example.banktransfer.global.progress.ProgressStatus;
 import com.example.banktransfer.global.support.OptimisticLockingRetryExecutor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AccountService {
     private final AccountRepository accountRepository;
     private final OptimisticLockingRetryExecutor optimisticLockingRetryExecutor;
@@ -41,11 +43,10 @@ public class AccountService {
 
     public void createAccount(CreateAccountRequest request) {
         String progressKey = "account:create:" + request.holderName();
-        ProgressStatus currentStatus = progressRecorder.getStatus(progressKey);
-        if (ProgressStatus.PROCESSING == currentStatus) {
-            throw new RuntimeException("이미 개설 진행 중입니다.");
+        boolean started = progressRecorder.tryStart(progressKey);
+        if (!started) {
+            throw new IllegalStateException("이미 개설 진행 중입니다.");
         }
-        progressRecorder.record(progressKey, ProgressStatus.PROCESSING, null);
 
         try {
             Account account = optimisticLockingRetryExecutor.execute(() -> {
@@ -59,17 +60,18 @@ public class AccountService {
             progressRecorder.delete(progressKey);
         } catch (Exception ex) {
             progressRecorder.record(progressKey, ProgressStatus.FAILED, ex.getMessage());
+            progressRecorder.delete(progressKey);
             throw ex;
         }
     }
 
     public void closeAccount(Long accountId) {
         String progressKey = "account:close:" + accountId;
-        ProgressStatus currentStatus = progressRecorder.getStatus(progressKey);
-        if (ProgressStatus.PROCESSING == currentStatus) {
-            throw new RuntimeException("이미 해지 진행 중입니다.");
+
+        boolean started = progressRecorder.tryStart(progressKey);
+        if (!started) {
+            throw new IllegalStateException("이미 해지 진행 중입니다.");
         }
-        progressRecorder.record(progressKey, ProgressStatus.PROCESSING, null);
 
         try {
             optimisticLockingRetryExecutor.run(() -> {
@@ -83,6 +85,7 @@ public class AccountService {
             progressRecorder.delete(progressKey);
         } catch (Exception ex) {
             progressRecorder.record(progressKey, ProgressStatus.FAILED, ex.getMessage());
+            progressRecorder.delete(progressKey);
             throw ex;
         }
     }

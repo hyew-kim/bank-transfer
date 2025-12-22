@@ -24,7 +24,7 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
     private AccountRepository accountRepository;
 
     @Test
-    void 동일한_사용자의_연속_계좌개설_모두_성공() throws InterruptedException {
+    void 동일한_사용자의_연속_계좌개설_1개만_성공() throws InterruptedException {
         String holderName = "Junit-tester";
         int threadCount = 10;
 
@@ -32,15 +32,32 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
         CountDownLatch readyLatch = new CountDownLatch(threadCount);    // Phase 1: 준비
         CountDownLatch proceedLatch = new CountDownLatch(1);        // Phase 2: 출발
         CountDownLatch doneLatch = new CountDownLatch(threadCount);     // Phase 3: 완료
-
+        AtomicInteger inProgressRejected = new AtomicInteger(0);
+        AtomicInteger otherError = new AtomicInteger(0);
         AtomicInteger successCount = new AtomicInteger(0);
+
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
                 try {
                     readyLatch.countDown();
                     proceedLatch.await(10, TimeUnit.SECONDS);
-                    accountService.createAccount(CreateAccountRequest.of(holderName));
-                    successCount.incrementAndGet();
+
+                    try {
+                        accountService.createAccount(CreateAccountRequest.of(holderName));
+                        successCount.incrementAndGet(); // 예외 없이 끝난 경우
+                    } catch (IllegalStateException ex) {
+                        // "이미 개설 진행 중"만 카운트
+                        if (ex.getMessage().contains("이미 개설 진행 중")) {
+                            inProgressRejected.incrementAndGet();
+                        } else {
+                            otherError.incrementAndGet();
+                            ex.printStackTrace();
+                        }
+                    } catch (Exception ex) {
+                        otherError.incrementAndGet();
+                        ex.printStackTrace();
+                    }
+
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
                 } finally {
@@ -48,6 +65,7 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
                 }
             });
         }
+
 
         assertThat(readyLatch.await(5, TimeUnit.SECONDS))
                 .as("모든 스레드가 중복 체크 지점까지 도착")
@@ -61,18 +79,24 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
 
         executor.shutdown();
 
+        System.out.println("success = " + successCount.get());
+        System.out.println("inProgressRejected = " + inProgressRejected.get());
+        System.out.println("otherError = " + otherError.get());
+        System.out.println("accountCount = " + accountRepository.count());
+
         assertThat(accountRepository.count())
                 .as("생성된 계좌 수")
-                .isEqualTo(threadCount);
+                .isEqualTo(1);
 
         assertThat(successCount.get())
                 .as("성공 횟수")
-                .isEqualTo(threadCount);
+                .isEqualTo(1);
 
         System.out.println("=== 동시성 테스트 결과 ===");
         System.out.println("총 요청: " + threadCount);
         System.out.println("성공: " + successCount.get());
         System.out.println("생성된 계좌: " + accountRepository.count());
     }
+
 
 }

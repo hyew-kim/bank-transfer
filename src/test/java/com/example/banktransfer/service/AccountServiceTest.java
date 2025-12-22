@@ -7,22 +7,21 @@ import com.example.banktransfer.global.annotation.IntegrationTest;
 import com.example.banktransfer.account.AccountStatus;
 import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
-import com.example.banktransfer.global.progress.ProgressRecorder;
 import com.example.banktransfer.global.config.BaseIntegrationTest;
+import com.example.banktransfer.global.progress.ProgressRecorder;
+import com.example.banktransfer.global.progress.ProgressStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
 @IntegrationTest
 public class AccountServiceTest extends BaseIntegrationTest {
     @Autowired
     private AccountService accountService;
     @Autowired
     private AccountRepository accountRepository;
-    @MockitoBean
+    @Autowired
     private ProgressRecorder progressRecorder;
 
     @Test
@@ -59,7 +58,7 @@ public class AccountServiceTest extends BaseIntegrationTest {
     }
 
     @Test
-    public void 동일_계좌_해지_요청_중복_차단() {
+    public void 계좌해지_진행중_중복요청_차단() {
         String holderName = "Junit-tester";
         CreateAccountRequest request = CreateAccountRequest.of(holderName);
 
@@ -69,28 +68,11 @@ public class AccountServiceTest extends BaseIntegrationTest {
                 .orElseThrow(() -> new RuntimeException("Not found"));
 
         String progressKey = "account:close:" + account.getId();
-        when(progressRecorder.getStatus(progressKey))
-                .thenReturn(com.example.banktransfer.global.progress.ProgressStatus.PROCESSING);
+        progressRecorder.record(progressKey, ProgressStatus.PROCESSING, null);
 
         assertThatThrownBy(() -> accountService.closeAccount(account.getId()))
-                .satisfies(System.out::println)
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("이미 해지 진행 중");
-    }
-
-    @Test
-    public void 동일_계좌_개설_요청_중복_차단() {
-        String holderName = "Junit-tester";
-        CreateAccountRequest request = CreateAccountRequest.of(holderName);
-
-        String progressKey = "account:create:" + request.holderName();
-        when(progressRecorder.getStatus(progressKey))
-                .thenReturn(com.example.banktransfer.global.progress.ProgressStatus.PROCESSING);
-
-        assertThatThrownBy(() -> accountService.createAccount(request))
-                .satisfies(System.out::println)
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("이미 개설 진행 중");
     }
 
     @Test
