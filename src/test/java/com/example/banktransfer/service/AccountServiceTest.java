@@ -8,22 +8,21 @@ import com.example.banktransfer.account.AccountStatus;
 import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.global.config.BaseIntegrationTest;
-import org.junit.jupiter.api.Disabled;
+import com.example.banktransfer.global.progress.ProgressRecorder;
+import com.example.banktransfer.global.progress.ProgressStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import static org.assertj.core.api.Assertions.assertThat;
-
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @IntegrationTest
 public class AccountServiceTest extends BaseIntegrationTest {
     @Autowired
     private AccountService accountService;
     @Autowired
     private AccountRepository accountRepository;
+    @Autowired
+    private ProgressRecorder progressRecorder;
 
     @Test
     public void 한명의_계좌개설_성공() {
@@ -35,34 +34,6 @@ public class AccountServiceTest extends BaseIntegrationTest {
 
         assertThat(account)
                 .isNotNull();
-    }
-
-    @Test
-    @Disabled("MVP 단계: 동시성 제어 미적용")
-    public void 동일한_사용자의_연속_계좌개설을_시도_한개만_성공() throws InterruptedException {
-        int requestCount = 10;
-        int userCount = 1;
-        ExecutorService executorService = Executors.newFixedThreadPool(requestCount);
-        CountDownLatch countDownLatch = new CountDownLatch(requestCount);
-
-        for (int i = 0; i < requestCount; i++) {
-            String holderName = "Junit-tester" + "_" + (userCount % requestCount);
-            CreateAccountRequest request = CreateAccountRequest.of(holderName);
-
-            executorService.execute(() -> {
-                try {
-                    accountService.createAccount(request);
-                } finally {
-                    countDownLatch.countDown();
-                }
-            });
-        }
-
-        countDownLatch.await();
-        executorService.shutdown();
-
-        assertThat(accountRepository.count())
-                .isEqualTo(userCount);
     }
 
     @Test
@@ -84,6 +55,24 @@ public class AccountServiceTest extends BaseIntegrationTest {
                 .as("계좌 해지 실패 ")
                 .extracting(Account::getStatus)
                 .isEqualTo(AccountStatus.CLOSED);
+    }
+
+    @Test
+    public void 계좌해지_진행중_중복요청_차단() {
+        String holderName = "Junit-tester";
+        CreateAccountRequest request = CreateAccountRequest.of(holderName);
+
+        accountService.createAccount(request);
+        Account account = accountRepository
+                .findByHolderName(holderName)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        String progressKey = "account:close:" + account.getId();
+        progressRecorder.record(progressKey, ProgressStatus.PROCESSING, null);
+
+        assertThatThrownBy(() -> accountService.closeAccount(account.getId()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("이미 해지 진행 중");
     }
 
     @Test
