@@ -1,7 +1,6 @@
 # 송금 서비스 구현
 ## 프로젝트 실행
-0. 별도 제공된 .env 파일 프로젝트 루트에 위치 
-> - 환경 변수 DB_USERNAME=<DB_USERNAME>;DB_PASSWORD=<DB_PASSWORD>
+
 1. MySQL + Redis + 앱 컨테이너 실행
   ```bash
    docker compose up -d

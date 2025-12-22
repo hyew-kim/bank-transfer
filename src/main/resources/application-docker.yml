@@ -1,12 +1,12 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://db:3306/${MYSQL_DATABASE}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:mysql://db:3306/bank
+    username: service_user
+    password: user123456
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
   data:
     redis:
       host: redis

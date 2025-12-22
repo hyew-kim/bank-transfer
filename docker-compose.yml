@@ -5,9 +5,9 @@ services:
       dockerfile: Dockerfile
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      DB_USERNAME: ${MYSQL_USER}
-      DB_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      DB_USERNAME: service_user
+      DB_PASSWORD: user123456
+      MYSQL_DATABASE: bank
     ports:
       - "8080:8080"
     depends_on:
@@ -16,10 +16,10 @@ services:
   db:
     image: mysql:8.0
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: bank
+      MYSQL_USER: service_user
+      MYSQL_PASSWORD: user123456
+      MYSQL_ROOT_PASSWORD: 7878admin
     ports:
       - "13306:3306"
     volumes:
