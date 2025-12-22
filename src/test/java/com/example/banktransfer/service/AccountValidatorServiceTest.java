@@ -1,10 +1,12 @@
 package com.example.banktransfer.service;
 
 import com.example.banktransfer.account.domain.entity.Account;
+import com.example.banktransfer.account.exception.AccountOwnershipException;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.account.service.AccountValidatorService;
 import com.example.banktransfer.global.annotation.IntegrationTest;
 import com.example.banktransfer.global.config.BaseIntegrationTest;
+import com.example.banktransfer.transaction.exception.DailyLimitExceededException;
 import com.example.banktransfer.global.fixture.AccountFixture;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,9 +41,7 @@ class AccountValidatorServiceTest extends BaseIntegrationTest {
 
         assertThatThrownBy(() -> accountValidatorService
                 .validateWithdrawal(testAccount, BigDecimal.valueOf(888888)))
-                .satisfies(ex -> System.out.println(ex.getMessage()))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("잔액 부족");
+                .isInstanceOf(AccountOwnershipException.InsufficientBalanceException.class);
     }
 
     @Test
@@ -51,9 +51,7 @@ class AccountValidatorServiceTest extends BaseIntegrationTest {
 
         assertThatThrownBy(() -> accountValidatorService
                 .validateTransfer(testAccount, BigDecimal.valueOf(1000000)))
-                .satisfies(ex -> System.out.println(ex.getMessage()))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("잔액 부족");
+                .isInstanceOf(AccountOwnershipException.InsufficientBalanceException.class);
     }
 
     @Test
@@ -63,9 +61,7 @@ class AccountValidatorServiceTest extends BaseIntegrationTest {
 
         assertThatThrownBy(() -> accountValidatorService
                 .validateWithdrawal(testAccount,BigDecimal.valueOf(10000001)))
-                .satisfies(ex -> System.out.println(ex.getMessage()))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("일 한도");
+                .isInstanceOf(DailyLimitExceededException.class);
     }
 
     @Test
@@ -75,8 +71,6 @@ class AccountValidatorServiceTest extends BaseIntegrationTest {
 
         assertThatThrownBy(() -> accountValidatorService
                 .validateTransfer(testAccount, BigDecimal.valueOf(30000001)))
-                .satisfies(ex -> System.out.println(ex.getMessage()))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("일 한도");
+                .isInstanceOf(DailyLimitExceededException.class);
     }
 }

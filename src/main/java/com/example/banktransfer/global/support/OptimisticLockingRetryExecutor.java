@@ -1,5 +1,6 @@
 package com.example.banktransfer.global.support;
 
+import com.example.banktransfer.global.exception.ConcurrentModificationException;
 import jakarta.persistence.OptimisticLockException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
@@ -34,17 +35,17 @@ public class OptimisticLockingRetryExecutor {
                 return transactionTemplate.execute(status -> action.get());
             } catch (OptimisticLockingFailureException | OptimisticLockException ex) {
                 if (attempt == MAX_RETRIES) {
-                    throw ex;
+                    throw new ConcurrentModificationException();
                 }
                 try {
                     Thread.sleep(BASE_BACKOFF_MILLIS * attempt);
                 } catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
-                    throw ex;
+                    throw new ConcurrentModificationException();
                 }
             }
         }
 
-        throw new IllegalStateException("Optimistic lock retry attempts exhausted.");
+        throw new ConcurrentModificationException();
     }
 }

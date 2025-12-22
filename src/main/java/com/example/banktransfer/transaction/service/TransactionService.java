@@ -3,6 +3,8 @@ package com.example.banktransfer.transaction.service;
 import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.account.service.AccountValidatorService;
+import com.example.banktransfer.global.exception.BusinessException;
+import com.example.banktransfer.transaction.exception.InvalidInputException;
 import com.example.banktransfer.global.progress.ProgressRecorder;
 import com.example.banktransfer.global.progress.ProgressStatus;
 import com.example.banktransfer.global.support.OptimisticLockingRetryExecutor;
@@ -47,7 +49,7 @@ public class TransactionService {
 
         try {
             if (request.amount().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException("입금 금액은 0보다 커야 합니다.");
+                throw new InvalidInputException();
             }
             // 2. 잔고 업데이트
             optimisticLockingRetryExecutor.run(() -> {
@@ -59,12 +61,17 @@ public class TransactionService {
             transactionRecordService.markSuccess(tx.getTransactionId());
             progressRecorder.record(tx.getTransactionId(), ProgressStatus.SUCCESS, null);
             log.info("입금 완료:: {}", tx.getTransactionId());
-        } catch (Exception ex) {
+        } catch (BusinessException ex) {
             // 4. 실패 처리
-            transactionRecordService.markFailed(tx.getTransactionId(), ex.getMessage());
-            progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, ex.getMessage());
+            transactionRecordService.markFailed(tx.getTransactionId(), null);
+            progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
 
-            throw new RuntimeException(tx.getTransactionId(), ex);
+            throw ex;
+        } catch (Exception ex) {
+            transactionRecordService.markFailed(tx.getTransactionId(), null);
+            progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
+
+            throw ex;
         }
 
         return tx;
@@ -94,12 +101,17 @@ public class TransactionService {
             progressRecorder.record(tx.getTransactionId(), ProgressStatus.SUCCESS, null);
             log.info("출금 완료:: {}", tx.getTransactionId());
 
-        } catch (Exception ex) {
+        } catch (BusinessException ex) {
             // 4. 실패 처리
-            transactionRecordService.markFailed(tx.getTransactionId(), ex.getMessage());
-            progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, ex.getMessage());
+            transactionRecordService.markFailed(tx.getTransactionId(), null);
+            progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
 
-            throw new RuntimeException(tx.getTransactionId(), ex);
+            throw ex;
+        } catch (Exception ex) {
+            transactionRecordService.markFailed(tx.getTransactionId(), null);
+            progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
+
+            throw ex;
         }
 
         return tx;
@@ -140,6 +152,24 @@ public class TransactionService {
             transactionRecordService.markSuccess(tx.getTransactionId());
             progressRecorder.record(tx.getTransactionId(), ProgressStatus.SUCCESS, null);
             log.info("이체 완료:: {}", tx.getTransactionId());
+        } catch (BusinessException ex) {
+            if (tx == null) {
+                tx = transactionRecordService.createFailed(
+                        account,
+                        request.amount(),
+                        request.description(),
+                        TransactionType.TRANSFER,
+                        null,
+                        null
+                );
+                progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
+            } else {
+                // 4. 실패 처리
+                transactionRecordService.markFailed(tx.getTransactionId(), null);
+                progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
+            }
+
+            throw ex;
         } catch (Exception ex) {
             if (tx == null) {
                 tx = transactionRecordService.createFailed(
@@ -148,16 +178,15 @@ public class TransactionService {
                         request.description(),
                         TransactionType.TRANSFER,
                         null,
-                        ex.getMessage()
+                        null
                 );
-                progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, ex.getMessage());
+                progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
             } else {
-                // 4. 실패 처리
-                transactionRecordService.markFailed(tx.getTransactionId(), ex.getMessage());
-                progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, ex.getMessage());
+                transactionRecordService.markFailed(tx.getTransactionId(), null);
+                progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
             }
 
-            throw new RuntimeException(tx.getTransactionId(), ex);
+            throw ex;
         }
 
         return tx;

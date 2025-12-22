@@ -3,6 +3,7 @@ package com.example.banktransfer.account.controller;
 import com.example.banktransfer.account.domain.dto.AccountResponse;
 import com.example.banktransfer.account.domain.dto.CreateAccountRequest;
 import com.example.banktransfer.account.service.AccountService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -18,13 +19,9 @@ public class AccountController {
     private final AccountService accountService;
 
     @PostMapping("")
-    public ResponseEntity<String> createAccount(@RequestBody CreateAccountRequest request) {
-        try {
-            accountService.createAccount(request);
-            return ResponseEntity.ok("계좌 등록이 완료되었습니다.");
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
+    public ResponseEntity<String> createAccount(@RequestBody @Valid CreateAccountRequest request) {
+        accountService.createAccount(request);
+        return ResponseEntity.ok("계좌 등록이 완료되었습니다.");
     }
 
     @GetMapping("/{accountId}")
@@ -34,7 +31,7 @@ public class AccountController {
 
     @GetMapping(params = {"userId", "bankCode", "accountNumber"})
     public ResponseEntity<List<AccountResponse>> getAccount(
-            @RequestParam @NotEmpty Long userId,
+            @RequestParam @NotNull Long userId,
             @RequestParam String bankCode,
             @RequestParam String accountNumber
     ) {
@@ -43,11 +40,7 @@ public class AccountController {
 
     @DeleteMapping("/{accountId}")
     public ResponseEntity<String> deleteAccount(@PathVariable Long accountId) {
-        try {
-            accountService.closeAccount(accountId);
-            return ResponseEntity.ok("계좌 해지가 완료되었습니다.");
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
+        accountService.closeAccount(accountId);
+        return ResponseEntity.ok("계좌 해지가 완료되었습니다.");
     }
 }
