@@ -4,6 +4,7 @@ import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.transaction.TransactionStatus;
 import com.example.banktransfer.transaction.TransactionType;
 import jakarta.persistence.*;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name = "transactions")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

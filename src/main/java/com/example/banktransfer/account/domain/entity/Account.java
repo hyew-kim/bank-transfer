@@ -4,6 +4,7 @@ import com.example.banktransfer.account.AccountStatus;
 import com.example.banktransfer.account.exception.AccountClosedException;
 import com.example.banktransfer.global.exception.InvalidInputException;
 import jakarta.persistence.*;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(
         name = "accounts",
         uniqueConstraints = {
