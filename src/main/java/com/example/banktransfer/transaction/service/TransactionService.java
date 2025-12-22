@@ -4,7 +4,7 @@ import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.account.service.AccountValidatorService;
 import com.example.banktransfer.global.exception.BusinessException;
-import com.example.banktransfer.transaction.exception.InvalidInputException;
+import com.example.banktransfer.global.exception.InvalidInputException;
 import com.example.banktransfer.global.progress.ProgressRecorder;
 import com.example.banktransfer.global.progress.ProgressStatus;
 import com.example.banktransfer.global.support.OptimisticLockingRetryExecutor;
@@ -49,20 +49,17 @@ public class TransactionService {
 
         try {
             if (request.amount().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new InvalidInputException();
+                throw new InvalidInputException("입금 금액 오류 확인 바랍니다.");
             }
-            // 2. 잔고 업데이트
             optimisticLockingRetryExecutor.run(() -> {
                 Account accountForUpdate = accountValidatorService.getAccountOrThrow(accountId);
                 accountForUpdate.changeBalance(accountForUpdate.getBalance().add(request.amount()));
             });
 
-            // 3. 성공 처리
             transactionRecordService.markSuccess(tx.getTransactionId());
             progressRecorder.record(tx.getTransactionId(), ProgressStatus.SUCCESS, null);
             log.info("입금 완료:: {}", tx.getTransactionId());
         } catch (BusinessException ex) {
-            // 4. 실패 처리
             transactionRecordService.markFailed(tx.getTransactionId(), null);
             progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
 
@@ -93,16 +90,13 @@ public class TransactionService {
             optimisticLockingRetryExecutor.run(() -> {
                 Account accountForUpdate = accountValidatorService.getAccountOrThrow(accountId);
                 accountValidatorService.validateWithdrawal(accountForUpdate, request.amount());
-                // 2. 잔고 업데이트
                 accountForUpdate.changeBalance(accountForUpdate.getBalance().subtract(request.amount()));
             });
-            // 3. 성공 처리
             transactionRecordService.markSuccess(tx.getTransactionId());
             progressRecorder.record(tx.getTransactionId(), ProgressStatus.SUCCESS, null);
             log.info("출금 완료:: {}", tx.getTransactionId());
 
         } catch (BusinessException ex) {
-            // 4. 실패 처리
             transactionRecordService.markFailed(tx.getTransactionId(), null);
             progressRecorder.record(tx.getTransactionId(), ProgressStatus.FAILED, null);
 
@@ -137,10 +131,12 @@ public class TransactionService {
             optimisticLockingRetryExecutor.run(() -> {
                 Account fromAccount = accountValidatorService.getAccountOrThrow(accountId);
                 Account targetAccount = accountValidatorService.getAccountOrThrow(request.toAccountId());
+
                 accountValidatorService.validateTransfer(fromAccount, request.amount().add(fee));
-                // 2. 잔고 업데이트
+
                 fromAccount.changeBalance(fromAccount.getBalance().subtract(request.amount()).subtract(fee));
                 targetAccount.changeBalance(targetAccount.getBalance().add(request.amount()));
+
                 accountRepository.save(fromAccount);
                 accountRepository.save(targetAccount);
             });

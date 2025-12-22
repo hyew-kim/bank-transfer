@@ -1,13 +1,13 @@
 package com.example.banktransfer.service;
 
 import com.example.banktransfer.account.domain.entity.Account;
-import com.example.banktransfer.account.exception.AccountClosedException;
+import com.example.banktransfer.account.exception.InvalidAccountException;
 import com.example.banktransfer.account.exception.AccountOwnershipException;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.global.annotation.IntegrationTest;
 import com.example.banktransfer.global.config.BaseIntegrationTest;
 import com.example.banktransfer.global.fixture.AccountFixture;
-import com.example.banktransfer.transaction.exception.InvalidInputException;
+import com.example.banktransfer.global.exception.InvalidInputException;
 import com.example.banktransfer.transaction.TransactionStatus;
 import com.example.banktransfer.transaction.TransactionType;
 import com.example.banktransfer.transaction.domain.dto.MoneyRequest;
@@ -199,7 +199,7 @@ public class TransactionServiceTest extends BaseIntegrationTest {
         assertThatThrownBy(() -> transactionService.transfer(
                 testAccount.getId(),
                 new TransferRequest(9999L, BigDecimal.valueOf(100), "수취계좌 없음")
-        )).isInstanceOf(AccountClosedException.InvalidAccountException.class);
+        )).isInstanceOf(InvalidAccountException.class);
 
         List<Transaction> failed = transactionRepository
                 .findByAccountIdAndStatusOrderByIdDesc(testAccount.getId(), TransactionStatus.FAILED)

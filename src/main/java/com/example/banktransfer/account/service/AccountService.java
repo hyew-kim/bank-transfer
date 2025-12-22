@@ -6,6 +6,7 @@ import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.domain.dto.CreateAccountRequest;
 import com.example.banktransfer.account.exception.AccountClosedException;
 import com.example.banktransfer.account.exception.AccountException;
+import com.example.banktransfer.account.exception.InvalidAccountException;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.account.exception.AccountAlreadyLinkedException;
 import com.example.banktransfer.global.progress.ProgressRecorder;
@@ -30,8 +31,8 @@ public class AccountService {
     @Transactional(readOnly = true)
     public AccountResponse searchAccount(String holderName) {
         Account account = accountRepository
-                .findByHolderName(holderName)
-                .orElseThrow(AccountClosedException.InvalidAccountException::new);
+                .findByHolderNameAndStatus(holderName, AccountStatus.ACTIVE)
+                .orElseThrow(InvalidAccountException::new);
 
         return AccountResponse.from(account);
     }
@@ -39,8 +40,8 @@ public class AccountService {
     @Transactional(readOnly = true)
     public AccountResponse searchAccount(Long accountId) {
         Account account =  accountRepository
-                .findById(accountId)
-                .orElseThrow(AccountClosedException.InvalidAccountException::new);
+                .findByIdAndStatus(accountId, AccountStatus.ACTIVE)
+                .orElseThrow(InvalidAccountException::new);
 
         return AccountResponse.from(account);
     }
@@ -48,7 +49,12 @@ public class AccountService {
     @Transactional(readOnly = true)
     public List<AccountResponse> searchAccount(Long userId, String bankCode, String accountNumber) {
         return accountRepository
-                .findByUserIdAndBankCodeAndAccountNumber(userId, bankCode, accountNumber)
+                .findByUserIdAndBankCodeAndAccountNumberAndStatus(
+                        userId,
+                        bankCode,
+                        accountNumber,
+                        AccountStatus.ACTIVE
+                )
                 .map(AccountResponse::from)
                 .stream()
                 .toList();
@@ -109,7 +115,7 @@ public class AccountService {
             optimisticLockingRetryExecutor.run(() -> {
                 Account userAccount = accountRepository
                         .findById(accountId)
-                        .orElseThrow(AccountClosedException.InvalidAccountException::new);
+                        .orElseThrow(InvalidAccountException::new);
 
                 userAccount.changeAccountStatus(AccountStatus.CLOSED);
             });

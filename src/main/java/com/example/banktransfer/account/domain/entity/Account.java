@@ -2,6 +2,7 @@ package com.example.banktransfer.account.domain.entity;
 
 import com.example.banktransfer.account.AccountStatus;
 import com.example.banktransfer.account.exception.AccountClosedException;
+import com.example.banktransfer.global.exception.InvalidInputException;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -77,14 +78,8 @@ public class Account {
 
     @PrePersist
     protected void validateRequiredFields() {
-        if (userId == null) {
-            throw new AccountClosedException.InvalidAccountException();
-        }
-        if (bankCode == null || bankCode.isBlank()) {
-            throw new AccountClosedException.InvalidAccountException();
-        }
-        if (accountNumber == null || accountNumber.isBlank()) {
-            throw new AccountClosedException.InvalidAccountNumberException();
+        if (userId == null || bankCode == null || bankCode.isBlank() || accountNumber == null || accountNumber.isBlank()) {
+            throw new InvalidInputException();
         }
     }
 

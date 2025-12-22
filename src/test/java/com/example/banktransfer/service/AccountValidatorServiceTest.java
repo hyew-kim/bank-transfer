@@ -60,7 +60,7 @@ class AccountValidatorServiceTest extends BaseIntegrationTest {
         accountRepository.save(testAccount);
 
         assertThatThrownBy(() -> accountValidatorService
-                .validateWithdrawal(testAccount,BigDecimal.valueOf(10000001)))
+                .validateWithdrawal(testAccount, BigDecimal.valueOf(10000001)))
                 .isInstanceOf(DailyLimitExceededException.class);
     }
 
