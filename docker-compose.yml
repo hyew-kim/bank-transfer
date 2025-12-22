@@ -11,8 +11,10 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
   db:
     image: mysql:8.0
     environment:
@@ -24,6 +26,11 @@ services:
       - "13306:3306"
     volumes:
       - db-vol:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "service_user", "-puser123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   redis:
     image: redis:7.0
     ports:
