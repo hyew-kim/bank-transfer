@@ -1,5 +1,8 @@
 package com.example.banktransfer.global.exception;
 
+import lombok.Getter;
+
+@Getter
 public enum ErrorCode {
 
     // Account
@@ -29,7 +32,4 @@ public enum ErrorCode {
         this.status = status;
         this.message = message;
     }
-
-    public int getStatus() { return status; }
-    public String getMessage() { return message; }
 }
