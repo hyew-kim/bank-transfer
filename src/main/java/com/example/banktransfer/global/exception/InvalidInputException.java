@@ -1,11 +1,12 @@
-package com.example.banktransfer.transaction.exception;
-
-import com.example.banktransfer.global.exception.BusinessException;
-import com.example.banktransfer.global.exception.ErrorCode;
+package com.example.banktransfer.global.exception;
 
 public class InvalidInputException extends BusinessException {
     public InvalidInputException() {
         super(ErrorCode.INVALID_INPUT.getMessage());
+    }
+
+    public InvalidInputException(String message) {
+        super(message);
     }
 
     @Override
