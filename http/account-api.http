@@ -3,10 +3,10 @@ POST http://localhost:8080/api/accounts
 Content-Type: application/json
 
 {
-  "userId": 1,
-  "bankCode": "777",
-  "accountNumber": "77700000000001",
-  "holderName": "janny"
+  "userId": 2,
+  "bankCode": "778",
+  "accountNumber": "77800000000001",
+  "holderName": "july"
 }
 
 > {%
@@ -25,7 +25,7 @@ GET http://localhost:8080/api/accounts/1
 %}
 
 ### 계좌 조회 API (등록 정보로 조회)
-GET http://localhost:8080/api/accounts?userId=1&bankCode=777&accountNumber=77700000000001
+GET http://localhost:8080/api/accounts?userId=2&bankCode=778&accountNumber=77800000000001
 
 > {%
     client.test("Status", function() {

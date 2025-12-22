@@ -2,6 +2,7 @@ package com.example.banktransfer.service;
 
 import com.example.banktransfer.account.domain.dto.AccountResponse;
 import com.example.banktransfer.account.domain.dto.CreateAccountRequest;
+import com.example.banktransfer.account.exception.AccountException;
 import com.example.banktransfer.account.service.AccountService;
 import com.example.banktransfer.global.annotation.IntegrationTest;
 import com.example.banktransfer.account.AccountStatus;
@@ -88,8 +89,7 @@ public class AccountServiceTest extends BaseIntegrationTest {
         progressRecorder.record(progressKey, ProgressStatus.PROCESSING, null);
 
         assertThatThrownBy(() -> accountService.closeAccount(account.getId()))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("이미 해지 진행 중");
+                .isInstanceOf(AccountException.LinkingInProgressException.class);
     }
 
     @Test

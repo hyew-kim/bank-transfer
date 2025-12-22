@@ -1,7 +1,10 @@
 package com.example.banktransfer.account.service;
 
 import com.example.banktransfer.account.domain.entity.Account;
+import com.example.banktransfer.account.exception.AccountClosedException;
+import com.example.banktransfer.account.exception.AccountOwnershipException;
 import com.example.banktransfer.account.repository.AccountRepository;
+import com.example.banktransfer.transaction.exception.DailyLimitExceededException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +18,7 @@ public class AccountValidatorService {
     public Account getAccountOrThrow(Long accountId) {
         return accountRepository
                 .findById(accountId)
-                .orElseThrow(() -> new IllegalArgumentException("계좌 정보를 찾을 수 없습니다.:: " + accountId));
+                .orElseThrow(AccountClosedException.InvalidAccountException::new);
     }
 
     public void validateWithdrawal(Account account, BigDecimal amount) {
@@ -23,7 +26,7 @@ public class AccountValidatorService {
         BigDecimal remainingLimit = account.getDailyLimitOfWithdrawal();
 
         if (amount.compareTo(remainingLimit) > 0) {
-            throw new RuntimeException("일 한도 1,000,000원 초과::잔여한도: " + remainingLimit);
+            throw new DailyLimitExceededException();
         }
 
         // 2. 예상 잔액 검증
@@ -31,7 +34,7 @@ public class AccountValidatorService {
         BigDecimal expectedBalance = balance.subtract(amount);
 
         if (expectedBalance.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("잔액 부족::잔액: " + balance);
+            throw new AccountOwnershipException.InsufficientBalanceException();
         }
     }
 
@@ -40,7 +43,7 @@ public class AccountValidatorService {
         BigDecimal remainingLimit = account.getDailyLimitOfTransfer();
 
         if (amount.compareTo(remainingLimit) > 0) {
-            throw new RuntimeException("일 한도 3,000,000원 초과::잔여한도: " + remainingLimit);
+            throw new DailyLimitExceededException();
         }
 
         // 2. 예상 잔액 검증
@@ -48,7 +51,7 @@ public class AccountValidatorService {
         BigDecimal expectedBalance = balance.subtract(amount);
 
         if (expectedBalance.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("잔액 부족::잔액: " +  balance);
+            throw new AccountOwnershipException.InsufficientBalanceException();
         }
     }
 }

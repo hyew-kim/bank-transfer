@@ -1,6 +1,7 @@
 package com.example.banktransfer.account.domain.entity;
 
 import com.example.banktransfer.account.AccountStatus;
+import com.example.banktransfer.account.exception.AccountClosedException;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -77,19 +78,19 @@ public class Account {
     @PrePersist
     protected void validateRequiredFields() {
         if (userId == null) {
-            throw new IllegalStateException("사용자 ID가 필요합니다.");
+            throw new AccountClosedException.InvalidAccountException();
         }
         if (bankCode == null || bankCode.isBlank()) {
-            throw new IllegalStateException("은행코드가 필요합니다.");
+            throw new AccountClosedException.InvalidAccountException();
         }
         if (accountNumber == null || accountNumber.isBlank()) {
-            throw new IllegalStateException("계좌번호가 필요합니다.");
+            throw new AccountClosedException.InvalidAccountNumberException();
         }
     }
 
     public void changeAccountStatus(AccountStatus tobeStatus) {
         if (!status.getIsChangeable()) {
-            throw new IllegalStateException("변경이 불가한 계좌입니다.");
+            throw new AccountClosedException();
         }
 
         status = tobeStatus;

@@ -2,9 +2,10 @@ package com.example.banktransfer.account.domain.dto;
 
 
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 public record CreateAccountRequest(
-        @NotEmpty Long  userId,
+        @NotNull Long  userId,
         @NotEmpty String bankCode,
         @NotEmpty String accountNumber,
         @NotEmpty String holderName

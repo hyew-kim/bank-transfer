@@ -1,6 +1,7 @@
 package com.example.banktransfer.transaction.service;
 
 import com.example.banktransfer.account.domain.entity.Account;
+import com.example.banktransfer.account.exception.AccountClosedException;
 import com.example.banktransfer.transaction.TransactionStatus;
 import com.example.banktransfer.transaction.TransactionType;
 import com.example.banktransfer.transaction.domain.entity.Transaction;
@@ -72,14 +73,14 @@ public class TransactionRecordService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markSuccess(String transactionId) {
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new RuntimeException("거래 내역을 찾을 수 없습니다.:: " + transactionId));
+                .orElseThrow(AccountClosedException.InvalidAccountException::new);
         tx.setStatus(TransactionStatus.SUCCESS);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(String transactionId, String reason) {
         Transaction tx = transactionRepository.findByTransactionId(transactionId)
-                .orElseThrow(() -> new RuntimeException("거래 내역을 찾을 수 없습니다.:: " + transactionId));
+                .orElseThrow(AccountClosedException.InvalidAccountException::new);
         tx.setStatus(TransactionStatus.FAILED);
         tx.setFailureReason(reason);
     }

@@ -1,6 +1,7 @@
 package com.example.banktransfer.service;
 
 import com.example.banktransfer.account.domain.dto.CreateAccountRequest;
+import com.example.banktransfer.account.exception.AccountException;
 import com.example.banktransfer.account.repository.AccountRepository;
 import com.example.banktransfer.account.service.AccountService;
 import com.example.banktransfer.global.annotation.IntegrationTest;
@@ -53,14 +54,8 @@ public class AccountConcurrencyTest extends BaseIntegrationTest {
                                 holderName
                         ));
                         successCount.incrementAndGet(); // 예외 없이 끝난 경우
-                    } catch (IllegalStateException ex) {
-                        // "이미 등록 진행 중"만 카운트
-                        if (ex.getMessage().contains("이미 등록 진행 중")) {
-                            inProgressRejected.incrementAndGet();
-                        } else {
-                            otherError.incrementAndGet();
-                            ex.printStackTrace();
-                        }
+                    } catch (AccountException.LinkingInProgressException ex) {
+                        inProgressRejected.incrementAndGet();
                     } catch (Exception ex) {
                         otherError.incrementAndGet();
                         ex.printStackTrace();

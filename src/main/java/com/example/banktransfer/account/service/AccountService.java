@@ -4,7 +4,10 @@ import com.example.banktransfer.account.AccountStatus;
 import com.example.banktransfer.account.domain.dto.AccountResponse;
 import com.example.banktransfer.account.domain.entity.Account;
 import com.example.banktransfer.account.domain.dto.CreateAccountRequest;
+import com.example.banktransfer.account.exception.AccountClosedException;
+import com.example.banktransfer.account.exception.AccountException;
 import com.example.banktransfer.account.repository.AccountRepository;
+import com.example.banktransfer.account.exception.AccountAlreadyLinkedException;
 import com.example.banktransfer.global.progress.ProgressRecorder;
 import com.example.banktransfer.global.progress.ProgressStatus;
 import com.example.banktransfer.global.support.OptimisticLockingRetryExecutor;
@@ -28,7 +31,7 @@ public class AccountService {
     public AccountResponse searchAccount(String holderName) {
         Account account = accountRepository
                 .findByHolderName(holderName)
-                .orElseThrow(() -> new RuntimeException(holderName + "소유의 계좌를 찾을 수 없습니다."));
+                .orElseThrow(AccountClosedException.InvalidAccountException::new);
 
         return AccountResponse.from(account);
     }
@@ -37,7 +40,7 @@ public class AccountService {
     public AccountResponse searchAccount(Long accountId) {
         Account account =  accountRepository
                 .findById(accountId)
-                .orElseThrow(() -> new RuntimeException("ID " + accountId + "를 찾을 수 없습니다."));
+                .orElseThrow(AccountClosedException.InvalidAccountException::new);
 
         return AccountResponse.from(account);
     }
@@ -60,7 +63,7 @@ public class AccountService {
         );
         boolean started = progressRecorder.tryStart(progressKey);
         if (!started) {
-            throw new IllegalStateException("이미 등록 진행 중입니다.");
+            throw new AccountException.LinkingInProgressException();
         }
 
         try {
@@ -69,7 +72,7 @@ public class AccountService {
                     request.bankCode(),
                     request.accountNumber()
             )) {
-                throw new IllegalStateException("이미 등록된 계좌입니다.");
+                throw new AccountAlreadyLinkedException();
             }
             Account account = optimisticLockingRetryExecutor.execute(() -> {
                 Account newAccount = Account.builder()
@@ -81,14 +84,14 @@ public class AccountService {
 
                 return accountRepository.save(newAccount);
             });
-            progressRecorder.record(progressKey, ProgressStatus.SUCCESS, "accountId=" + account.getId());
+            progressRecorder.record(progressKey, ProgressStatus.SUCCESS, null);
             progressRecorder.delete(progressKey);
         } catch (DataIntegrityViolationException ex) {
-            progressRecorder.record(progressKey, ProgressStatus.FAILED, "이미 등록된 계좌입니다.");
+            progressRecorder.record(progressKey, ProgressStatus.FAILED, null);
             progressRecorder.delete(progressKey);
-            throw new IllegalStateException("이미 등록된 계좌입니다.", ex);
+            throw new AccountAlreadyLinkedException(ex);
         } catch (Exception ex) {
-            progressRecorder.record(progressKey, ProgressStatus.FAILED, ex.getMessage());
+            progressRecorder.record(progressKey, ProgressStatus.FAILED, null);
             progressRecorder.delete(progressKey);
             throw ex;
         }
@@ -99,21 +102,21 @@ public class AccountService {
 
         boolean started = progressRecorder.tryStart(progressKey);
         if (!started) {
-            throw new IllegalStateException("이미 해지 진행 중입니다.");
+            throw new AccountException.LinkingInProgressException();
         }
 
         try {
             optimisticLockingRetryExecutor.run(() -> {
                 Account userAccount = accountRepository
                         .findById(accountId)
-                        .orElseThrow(() -> new RuntimeException("Account does not exists:: accountId - " + accountId));
+                        .orElseThrow(AccountClosedException.InvalidAccountException::new);
 
                 userAccount.changeAccountStatus(AccountStatus.CLOSED);
             });
             progressRecorder.record(progressKey, ProgressStatus.SUCCESS, null);
             progressRecorder.delete(progressKey);
         } catch (Exception ex) {
-            progressRecorder.record(progressKey, ProgressStatus.FAILED, ex.getMessage());
+            progressRecorder.record(progressKey, ProgressStatus.FAILED, null);
             progressRecorder.delete(progressKey);
             throw ex;
         }

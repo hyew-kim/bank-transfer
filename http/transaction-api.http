@@ -22,7 +22,7 @@ Content-Type: application/json
 
 {
   "toAccountId": 3,
-  "amount": 1000,
+  "amount": 10000,
   "description": "정산금"
 }
 
